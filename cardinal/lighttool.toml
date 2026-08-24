@@ -1,0 +1,18 @@
+[tool]
+id = "com.ascender.cardinal"
+label = "Cardinal"
+versionCode = 1
+versionName = "1.0.0"
+# Cardinal requests nothing. Every verse ships in assets/bible, so there is no
+# network call anywhere in the tool.
+#
+# Note that the packaged APK still ends up with INTERNET, CAMERA and a few
+# others: those come from library manifests inside :sdk:client and :sdk:ui
+# (the QR scanner, media3, DataStore, Ktor) and merge in whether a tool uses
+# them or not. Nothing here declares or uses them.
+permissions = []
+capabilities = []
+orientation = "portrait"
+# change if you run this on an LP3!
+# serverPackage = "com.lightos"
+serverPackage = "com.thelightphone.sdk.emulator"
