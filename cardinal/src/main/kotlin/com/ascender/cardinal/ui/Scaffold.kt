@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.thelightphone.sdk.ui.LightBarButton
 import com.thelightphone.sdk.ui.LightIcons
 import com.thelightphone.sdk.ui.LightText
@@ -107,6 +108,12 @@ object Space {
     /** Between one section of a screen and the next. */
     const val section = 2f
 }
+
+/**
+ * The smallest a tappable thing may be. Rows and grid cells clear it through
+ * the spacing scale; an icon has to be given the room explicitly.
+ */
+val MIN_TOUCH_TARGET = 44.dp
 
 /** Horizontal inset shared by every scrolling body, so screens line up. */
 const val CONTENT_PADDING_UNITS = Space.base

@@ -26,7 +26,7 @@ data class Highlight(
     fun isOn(book: Int, chapter: Int, verse: Int): Boolean =
         this.book == book && this.chapter == chapter && this.verse == verse
 
-    val reference: String get() = "${BibleBook.byId(book)?.name ?: "?"} $chapter:$verse"
+    val reference: String get() = verseReference(book, chapter, verse)
 }
 
 /** What the reader remembers between launches. Highlights in insertion order. */

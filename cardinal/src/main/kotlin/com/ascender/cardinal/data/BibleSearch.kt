@@ -12,7 +12,7 @@ data class SearchHit(
     val verse: Int,
     val text: String,
 ) {
-    val reference: String get() = "${BibleBook.byId(book)?.name ?: "?"} $chapter:$verse"
+    val reference: String get() = verseReference(book, chapter, verse)
 }
 
 data class SearchResults(

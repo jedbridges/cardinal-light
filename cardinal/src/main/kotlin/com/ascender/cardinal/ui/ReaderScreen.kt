@@ -53,8 +53,8 @@ data class ReaderUiState(
 class ReaderViewModel(
     private val store: ReaderStore,
     private val repository: BibleRepository,
-    initial: Reference,
-    openAtVerse: Int? = null,
+    private val initial: Reference,
+    private val openAtVerse: Int? = null,
 ) : LightViewModel<Unit>() {
 
     private val _state = MutableStateFlow(
@@ -63,9 +63,6 @@ class ReaderViewModel(
     val state: StateFlow<ReaderUiState> = _state.asStateFlow()
 
     val undo = UndoController(viewModelScope, store)
-
-    private val initialReference = initial
-    private val openAtVerse = openAtVerse
 
     init {
         viewModelScope.launch {
@@ -104,7 +101,7 @@ class ReaderViewModel(
             next = repository.nextChapter(reference.bookId, reference.chapter),
             // Only the chapter this screen was opened on has a target verse.
             // Paging on to the next one starts at its beginning.
-            openAtVerse = openAtVerse.takeIf { reference == initialReference },
+            openAtVerse = openAtVerse.takeIf { reference == initial },
         )
         store.setPosition(reference.bookId, reference.chapter, openAtVerse ?: 1)
     }

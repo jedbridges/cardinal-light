@@ -55,7 +55,7 @@ class HomeScreen(sealedActivity: SealedLightActivity) :
                     .padding(horizontal = CONTENT_PADDING_UNITS.gridUnitsAsDp()),
             ) {
                 LightText(
-                    text = "Continue reading...",
+                    text = "Continue reading\u2026",
                     variant = LightTextVariant.Superfine,
                     lighten = true,
                     modifier = Modifier.padding(top = Space.base.gridUnitsAsDp()),
@@ -63,6 +63,7 @@ class HomeScreen(sealedActivity: SealedLightActivity) :
                 CardinalRow(
                     text = "${book?.name ?: "John"} ${state.lastChapter}",
                     variant = LightTextVariant.Heading,
+                    onClickLabel = "Continue reading",
                     onClick = { openReader(state.lastBook, state.lastChapter, state.lastVerse) },
                 )
 
@@ -71,20 +72,34 @@ class HomeScreen(sealedActivity: SealedLightActivity) :
                 // the rows below and read as the first of five destinations.
                 Spacer(modifier = Modifier.height(Space.section.gridUnitsAsDp()))
 
-                CardinalRow(text = "Books", onClick = { navigateTo(::BookListScreen) })
-                CardinalRow(text = "Search", onClick = { navigateTo(::SearchScreen) })
+                CardinalRow(
+                    text = "Books",
+                    onClickLabel = "Browse all books",
+                    onClick = { navigateTo(::BookListScreen) },
+                )
+                CardinalRow(
+                    text = "Search",
+                    onClickLabel = "Search this translation",
+                    onClick = { navigateTo(::SearchScreen) },
+                )
                 CardinalRow(
                     text = "Highlights",
+                    onClickLabel = "Verses you have highlighted",
                     detail = state.highlights.size.takeIf { it > 0 }
                         ?.let { if (it == 1) "1 verse" else "$it verses" },
                     onClick = { navigateTo(::HighlightsScreen) },
                 )
                 CardinalRow(
                     text = "Translation",
+                    onClickLabel = "Change translation",
                     detail = state.currentTranslation.displayName,
                     onClick = { navigateTo(::TranslationScreen) },
                 )
-                CardinalRow(text = "About", onClick = { navigateTo(::AboutScreen) })
+                CardinalRow(
+                    text = "About",
+                    onClickLabel = "About Cardinal",
+                    onClick = { navigateTo(::AboutScreen) },
+                )
             }
         }
     }

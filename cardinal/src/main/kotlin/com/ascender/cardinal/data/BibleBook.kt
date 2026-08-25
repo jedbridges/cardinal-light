@@ -95,3 +95,11 @@ data class BibleBook(
         )
     }
 }
+
+/** "John 1" — a chapter. */
+fun chapterReference(book: Int, chapter: Int): String =
+    "${BibleBook.byId(book)?.name ?: "?"} $chapter"
+
+/** "John 1:1" — a verse. The one place this string is built. */
+fun verseReference(book: Int, chapter: Int, verse: Int): String =
+    "${chapterReference(book, chapter)}:$verse"

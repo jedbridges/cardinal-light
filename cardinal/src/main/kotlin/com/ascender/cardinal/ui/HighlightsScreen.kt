@@ -13,7 +13,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewModelScope
 import com.ascender.cardinal.data.BibleRepository
 import com.ascender.cardinal.data.Highlight
@@ -79,7 +78,6 @@ class HighlightsViewModel(
 private val Highlight.key: String get() = "$book:$chapter:$verse:$startWord:$endWord"
 
 /** Every highlighted verse, newest first. Insertion order, so just reversed. */
-private val MIN_TOUCH_TARGET = 44.dp
 private const val TRASH_ICON_UNITS = 1.6f
 
 class HighlightsScreen(sealedActivity: SealedLightActivity) :

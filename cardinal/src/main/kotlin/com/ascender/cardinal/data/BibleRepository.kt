@@ -83,5 +83,5 @@ class BibleRepository(
 }
 
 data class Reference(val bookId: Int, val chapter: Int) {
-    val display: String get() = "${BibleBook.byId(bookId)?.name ?: "?"} $chapter"
+    val display: String get() = chapterReference(bookId, chapter)
 }
