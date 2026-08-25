@@ -21,8 +21,8 @@ use it less.
 
 | Code | Translation | Status |
 | --- | --- | --- |
+| KJV | King James Version | Public domain. The default. |
 | WEB | World English Bible | Public domain. No permission needed to copy, quote, or print. |
-| KJV | King James Version | Public domain. |
 | BSB | Berean Standard Bible | Dedicated to the public domain on 30 April 2023. Courtesy of [berean.bible](https://berean.bible/licensing.htm). |
 
 Nothing copyrighted will ever be added. A licensed translation could not be

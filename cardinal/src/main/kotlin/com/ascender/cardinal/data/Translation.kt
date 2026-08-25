@@ -1,7 +1,10 @@
 package com.ascender.cardinal.data
 
 /**
- * The three translations this tool ships. All carry no copyright on the text,
+ * The three translations this tool ships, in the order they are offered.
+ * Declaration order drives both the picker and the About list.
+ *
+ * All carry no copyright on the text,
  * which is what makes them safe to bundle in an open-source repo that Light
  * builds from a public commit.
  *
@@ -13,15 +16,15 @@ enum class Translation(
     val displayName: String,
     val attribution: String,
 ) {
-    WEB(
-        code = "WEB",
-        displayName = "World English Bible",
-        attribution = "Public domain. No permission needed to copy, quote, or print.",
-    ),
     KJV(
         code = "KJV",
         displayName = "King James Version",
         attribution = "Public domain.",
+    ),
+    WEB(
+        code = "WEB",
+        displayName = "World English Bible",
+        attribution = "Public domain. No permission needed to copy, quote, or print.",
     ),
     BSB(
         code = "BSB",
@@ -31,7 +34,7 @@ enum class Translation(
     );
 
     companion object {
-        val default = WEB
+        val default = KJV
 
         fun fromCode(code: String?): Translation =
             entries.firstOrNull { it.code == code } ?: default
