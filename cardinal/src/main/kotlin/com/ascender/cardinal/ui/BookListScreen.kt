@@ -3,13 +3,12 @@ package com.ascender.cardinal.ui
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.ascender.cardinal.data.BibleBook
 import com.thelightphone.sdk.SealedLightActivity
 import com.thelightphone.sdk.SimpleLightScreen
-import com.thelightphone.sdk.ui.LightLazyScrollView
+import com.thelightphone.sdk.ui.LightScrollView
 import com.thelightphone.sdk.ui.LightText
 import com.thelightphone.sdk.ui.LightTextVariant
 import com.thelightphone.sdk.ui.gridUnitsAsDp
@@ -27,16 +26,22 @@ class BookListScreen(sealedActivity: SealedLightActivity) :
     @Composable
     override fun Content() {
         CardinalScreen(title = "Books", onBack = { goBack() }) {
-            LightLazyScrollView(
+            // Not LightLazyScrollView. That one sizes its scrollbar from a
+            // uniform item height you promise it, and the promise here was
+            // 2.6 grid units against an actual row pitch of 2.88 — a tenth
+            // out, which is why the thumb read as too large. Any change to row
+            // padding or text variant would desynchronise it again. The plain
+            // scroll view measures real content and cannot drift; sixty-six
+            // short rows cost nothing to compose.
+            LightScrollView(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = CONTENT_PADDING_UNITS.gridUnitsAsDp()),
-                uniformItemHeightGridUnits = ROW_HEIGHT_UNITS,
             ) {
-                item { TestamentHeading("Old Testament") }
-                items(BibleBook.old) { book -> BookRow(book) }
-                item { TestamentHeading("New Testament") }
-                items(BibleBook.new) { book -> BookRow(book) }
+                TestamentHeading("Old Testament")
+                BibleBook.old.forEach { BookRow(it) }
+                TestamentHeading("New Testament")
+                BibleBook.new.forEach { BookRow(it) }
             }
         }
     }
@@ -50,6 +55,7 @@ class BookListScreen(sealedActivity: SealedLightActivity) :
     private fun BookRow(book: BibleBook) {
         CardinalRow(
             text = book.name,
+            onClickLabel = "Open ${book.name}",
             onClick = { navigateTo({ ChapterListScreen(it, book.id) }) },
         )
     }
@@ -62,7 +68,7 @@ class BookListScreen(sealedActivity: SealedLightActivity) :
             lighten = true,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 1f.gridUnitsAsDp(), bottom = 0.25f.gridUnitsAsDp()),
+                .padding(top = Space.comfy.gridUnitsAsDp(), bottom = Space.hairline.gridUnitsAsDp()),
         )
     }
 }

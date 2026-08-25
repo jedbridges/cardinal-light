@@ -1,12 +1,14 @@
 package com.ascender.cardinal.ui
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewModelScope
 import com.ascender.cardinal.data.ReaderState
@@ -15,6 +17,8 @@ import com.ascender.cardinal.data.Translation
 import com.thelightphone.sdk.LightScreen
 import com.thelightphone.sdk.LightViewModel
 import com.thelightphone.sdk.SealedLightActivity
+import com.thelightphone.sdk.ui.LightIcon
+import com.thelightphone.sdk.ui.LightIcons
 import com.thelightphone.sdk.ui.LightScrollView
 import com.thelightphone.sdk.ui.LightText
 import com.thelightphone.sdk.ui.LightTextVariant
@@ -41,6 +45,8 @@ class TranslationViewModel(private val store: ReaderStore) : LightViewModel<Unit
  * The attribution lines are shown rather than buried because that is the whole
  * argument for why this app is allowed to exist.
  */
+private const val SELECT_ICON_UNITS = 1.6f
+
 class TranslationScreen(sealedActivity: SealedLightActivity) :
     LightScreen<Unit, TranslationViewModel>(sealedActivity) {
 
@@ -60,24 +66,39 @@ class TranslationScreen(sealedActivity: SealedLightActivity) :
                         horizontal = CONTENT_PADDING_UNITS.gridUnitsAsDp(),
                     ),
                 ) {
+                    // The selected translation used to be marked with a bare
+                    // "·" appended to its name, which reads as a typo rather
+                    // than a state and says nothing to a screen reader. The SDK
+                    // ships SELECT_ON / SELECT_OFF for exactly this.
                     Translation.entries.forEach { translation ->
                         val selected = translation == state.currentTranslation
-                        CardinalRow(
-                            text = if (selected) {
-                                "${translation.displayName}  ·"
-                            } else {
-                                translation.displayName
-                            },
-                            detail = translation.code,
-                            onClick = { viewModel.select(translation) },
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            CardinalRow(
+                                text = translation.displayName,
+                                detail = translation.code,
+                                modifier = Modifier.weight(1f),
+                                onClickLabel = if (selected) null else "Use ${translation.displayName}",
+                                onClick = { viewModel.select(translation) },
+                            )
+                            LightIcon(
+                                icon = if (selected) LightIcons.SELECT_ON else LightIcons.SELECT_OFF,
+                                size = SELECT_ICON_UNITS,
+                                contentDescription = if (selected) "Selected" else null,
+                            )
+                        }
                     }
 
                     LightText(
                         text = "Attribution",
                         variant = LightTextVariant.Superfine,
                         lighten = true,
-                        modifier = Modifier.padding(top = 1.5f.gridUnitsAsDp()),
+                        modifier = Modifier.padding(
+                            top = Space.section.gridUnitsAsDp(),
+                            bottom = Space.hairline.gridUnitsAsDp(),
+                        ),
                     )
                     Translation.entries.forEach { translation ->
                         LightText(
@@ -86,7 +107,7 @@ class TranslationScreen(sealedActivity: SealedLightActivity) :
                             lighten = true,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 0.4f.gridUnitsAsDp()),
+                                .padding(vertical = Space.hairline.gridUnitsAsDp()),
                         )
                     }
                 }

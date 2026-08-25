@@ -124,7 +124,7 @@ class ReaderViewModel(
                 reference.chapter,
                 verse,
             )
-            undo.offer("Highlight removed", removed)
+            undo.offer("Removed ${reference.display}:$verse", removed)
         }
     }
 
@@ -137,12 +137,28 @@ class ReaderViewModel(
                 reference.chapter,
                 ranges,
             )
-            undo.offer("Highlight replaced", replaced)
+            undo.offer(replacedMessage(_state.value.reference, replaced), replaced)
         }
     }
 
-    /** Paging away from a chapter retires its undo; the row would outlive its context. */
-    fun dismissUndo() = undo.dismiss()
+}
+
+
+/**
+ * "Replaced John 1:1" beats "Highlight replaced": the reader is looking at a
+ * wall of verses and needs to know which one the message is about.
+ *
+ * Total on purpose. The first version indexed into the verse list without
+ * checking it was populated, and a drag that replaces nothing — which is most
+ * drags — took the whole app down with it.
+ */
+fun replacedMessage(reference: Reference, replaced: List<Highlight>): String {
+    val verses = replaced.map { it.verse }.distinct().sorted()
+    return when {
+        verses.isEmpty() -> ""
+        verses.size == 1 -> "Replaced ${reference.display}:${verses.first()}"
+        else -> "Replaced ${reference.display}:${verses.first()}-${verses.last()}"
+    }
 }
 
 /**
@@ -183,8 +199,12 @@ class ReaderScreen(
             },
         ) {
             when {
-                state.loading -> Placeholder("...")
-                state.verses.isEmpty() -> Placeholder("Nothing here.")
+                state.loading -> Placeholder("Opening ${state.reference.display}")
+                // Only reachable if a bundled asset is missing or unreadable,
+                // which is a packaging fault rather than anything the reader
+                // did. Say so plainly instead of "Nothing here."
+                state.verses.isEmpty() ->
+                    Placeholder("${state.reference.display} could not be opened.")
                 else -> ChapterText(
                     verses = state.verses,
                     highlights = state.highlights,
@@ -217,18 +237,19 @@ class ReaderScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 2f.gridUnitsAsDp(), bottom = 2.5f.gridUnitsAsDp()),
+                .padding(top = Space.section.gridUnitsAsDp(), bottom = Space.section.gridUnitsAsDp()),
         ) {
             HorizontalDivider(
                 color = LightThemeTokens.colors.contentSecondary,
                 thickness = Dp.Hairline,
-                modifier = Modifier.padding(bottom = 1f.gridUnitsAsDp()),
+                modifier = Modifier.padding(bottom = Space.base.gridUnitsAsDp()),
             )
             state.previous?.let { previous ->
                 CardinalRow(
                     text = previous.display,
                     detail = "Previous",
                     variant = LightTextVariant.Detail,
+                    onClickLabel = "Previous chapter, ${previous.display}",
                     onClick = viewModel::goToPrevious,
                 )
             }
@@ -237,6 +258,7 @@ class ReaderScreen(
                     text = next.display,
                     detail = "Next",
                     variant = LightTextVariant.Detail,
+                    onClickLabel = "Next chapter, ${next.display}",
                     onClick = viewModel::goToNext,
                 )
             }
@@ -251,7 +273,7 @@ class ReaderScreen(
             lighten = true,
             modifier = Modifier.padding(
                 horizontal = CONTENT_PADDING_UNITS.gridUnitsAsDp(),
-                vertical = 1f.gridUnitsAsDp(),
+                vertical = Space.base.gridUnitsAsDp(),
             ),
         )
     }

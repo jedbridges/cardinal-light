@@ -1,16 +1,19 @@
 package com.ascender.cardinal.ui
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewModelScope
 import com.ascender.cardinal.data.BibleRepository
 import com.ascender.cardinal.data.Highlight
@@ -89,6 +92,9 @@ private val Highlight.key: String get() = "$book:$chapter:$verse:$startWord:$end
  * Highlights are stored in insertion order, so "newest first" is a reversal
  * rather than a sort on a timestamp nobody would ever see.
  */
+private val MIN_TOUCH_TARGET = 44.dp
+private const val TRASH_ICON_UNITS = 1.6f
+
 class HighlightsScreen(sealedActivity: SealedLightActivity) :
     LightScreen<Unit, HighlightsViewModel>(sealedActivity) {
 
@@ -131,7 +137,7 @@ class HighlightsScreen(sealedActivity: SealedLightActivity) :
                     lighten = true,
                     modifier = Modifier.padding(
                         horizontal = CONTENT_PADDING_UNITS.gridUnitsAsDp(),
-                        vertical = 1f.gridUnitsAsDp(),
+                        vertical = Space.base.gridUnitsAsDp(),
                     ),
                 )
                 return@CardinalScreen
@@ -153,20 +159,31 @@ class HighlightsScreen(sealedActivity: SealedLightActivity) :
                                 detail = previews[highlight.key]?.let { preview(it, highlight) },
                                 variant = LightTextVariant.Detail,
                                 modifier = Modifier.weight(1f),
+                                onClickLabel = "Read ${highlight.reference}",
                                 onClick = {
                                     navigateTo({
                                         ReaderScreen(it, highlight.book, highlight.chapter)
                                     })
                                 },
                             )
-                            LightIcon(
-                                icon = LightIcons.TRASH,
-                                size = 1.6f,
-                                contentDescription = "Remove ${highlight.reference}",
+                            // The icon is 1.6 grid units, about 24dp. Sizing
+                            // the touch area to 44dp separately means the
+                            // target meets the minimum without drawing a
+                            // bigger trash can than the row deserves.
+                            Box(
                                 modifier = Modifier
-                                    .lightClickable { viewModel.delete(highlight) }
-                                    .padding(start = 1f.gridUnitsAsDp()),
-                            )
+                                    .size(MIN_TOUCH_TARGET)
+                                    .lightClickable(
+                                        onClickLabel = "Remove ${highlight.reference}",
+                                    ) { viewModel.delete(highlight) },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                LightIcon(
+                                    icon = LightIcons.TRASH,
+                                    size = TRASH_ICON_UNITS,
+                                    contentDescription = null,
+                                )
+                            }
                         }
                     }
                 }

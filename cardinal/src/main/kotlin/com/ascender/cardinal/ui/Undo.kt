@@ -87,7 +87,7 @@ fun UndoRow(pending: PendingUndo, onUndo: () -> Unit, modifier: Modifier = Modif
             .background(LightThemeTokens.colors.background)
             .padding(
                 horizontal = CONTENT_PADDING_UNITS.gridUnitsAsDp(),
-                vertical = 0.9f.gridUnitsAsDp(),
+                vertical = Space.snug.gridUnitsAsDp(),
             ),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,

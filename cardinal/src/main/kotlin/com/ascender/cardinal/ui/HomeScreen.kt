@@ -7,8 +7,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.viewModelScope
 import com.ascender.cardinal.data.BibleBook
 import com.ascender.cardinal.data.ReaderState
@@ -58,7 +56,7 @@ class HomeScreen(sealedActivity: SealedLightActivity) :
                     text = "Continue",
                     variant = LightTextVariant.Superfine,
                     lighten = true,
-                    modifier = Modifier.padding(top = 1f.gridUnitsAsDp()),
+                    modifier = Modifier.padding(top = Space.base.gridUnitsAsDp()),
                 )
                 CardinalRow(
                     text = "${book?.name ?: "John"} ${state.lastChapter}",

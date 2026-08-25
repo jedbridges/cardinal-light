@@ -258,7 +258,7 @@ private fun SelectableVerse(
         color = colors.content,
         modifier = Modifier
             .fillMaxWidth()
-            .lightClickable(onClick = onTap)
+            .lightClickable(onClickLabel = "Highlight verse ${verse.verse}", onClick = onTap)
             .padding(vertical = VERSE_VERTICAL_PADDING_UNITS.gridUnitsAsDp())
             // Publishing the layout is a map write. Turning it into word frames
             // is deferred to VerseLayouts.wordAt, which only ever does it for
@@ -376,4 +376,14 @@ private class VerseLayouts {
 }
 
 private const val AUTO_SCROLL_STEP = 24f
-private const val VERSE_VERTICAL_PADDING_UNITS = 0.25f
+/**
+ * Air between verses.
+ *
+ * Was a quarter unit, which is 3.8dp and left a one-line verse as a ~38dp
+ * target. Half a unit both reads better as prose and grows the target. It
+ * still does not reach 44dp for the shortest verses, and that is a deliberate
+ * limit: forcing every verse to a button-sized target would space scripture
+ * like a list and cost the thing the app exists for. A stray tap is survivable
+ * now that it widens rather than destroys, and is undoable either way.
+ */
+private const val VERSE_VERTICAL_PADDING_UNITS = Space.tight

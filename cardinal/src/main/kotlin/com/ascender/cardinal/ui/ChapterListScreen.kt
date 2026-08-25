@@ -44,15 +44,17 @@ class ChapterListScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = CONTENT_PADDING_UNITS.gridUnitsAsDp()),
-                verticalArrangement = Arrangement.spacedBy(0.5f.gridUnitsAsDp()),
-                horizontalArrangement = Arrangement.spacedBy(0.5f.gridUnitsAsDp()),
+                verticalArrangement = Arrangement.spacedBy(Space.tight.gridUnitsAsDp()),
+                horizontalArrangement = Arrangement.spacedBy(Space.tight.gridUnitsAsDp()),
             ) {
                 items((1..book.chapterCount).toList()) { chapter ->
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(CELL_HEIGHT_UNITS.gridUnitsAsDp())
-                            .lightClickable { openChapter(chapter) },
+                            .lightClickable(
+                                onClickLabel = "Chapter $chapter",
+                            ) { openChapter(chapter) },
                         contentAlignment = Alignment.Center,
                     ) {
                         LightText(text = "$chapter", variant = LightTextVariant.Copy)
@@ -68,6 +70,12 @@ class ChapterListScreen(
 
     private companion object {
         const val COLUMNS = 5
-        const val CELL_HEIGHT_UNITS = 2.5f
+
+        /**
+         * 3 grid units is 45.7dp on the LP3. The previous 2.5 came out at
+         * 38.1dp, under the 44dp minimum touch target, on a grid where Psalms
+         * puts 150 of them under a moving thumb.
+         */
+        const val CELL_HEIGHT_UNITS = 3f
     }
 }

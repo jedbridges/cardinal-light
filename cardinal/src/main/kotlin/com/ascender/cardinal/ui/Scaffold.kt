@@ -74,12 +74,13 @@ fun CardinalRow(
     modifier: Modifier = Modifier,
     detail: String? = null,
     variant: LightTextVariant = LightTextVariant.Copy,
+    onClickLabel: String? = null,
     onClick: () -> Unit,
 ) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .lightClickable(onClick = onClick)
+            .lightClickable(onClickLabel = onClickLabel, onClick = onClick)
             .padding(vertical = ROW_VERTICAL_PADDING_UNITS.gridUnitsAsDp()),
     ) {
         LightText(text = text, variant = variant)
@@ -89,12 +90,38 @@ fun CardinalRow(
     }
 }
 
-/** Horizontal inset shared by every scrolling body, so screens line up. */
-const val CONTENT_PADDING_UNITS = 1f
-
 /**
- * Row height in grid units, used both for padding and to tell
- * `LightLazyScrollView` how tall its uniform items are. Change one, change both.
+ * The spacing scale, in LightOS grid units.
+ *
+ * The grid is 27 across by 31 down, so one unit is about 15dp on the LP3 and
+ * scales with the panel. Everything spatial in this tool comes from here:
+ * before this existed the screens used eight different ad-hoc literals
+ * (0.25, 0.4, 0.5, 0.9, 1, 1.5, 2, 2.5) which is how layouts drift out of
+ * rhythm one reasonable-looking decision at a time.
+ *
+ * Never write a bare `1.3f.gridUnitsAsDp()`. Add a step here if none fits.
  */
-const val ROW_VERTICAL_PADDING_UNITS = 0.6f
-const val ROW_HEIGHT_UNITS = 2.6f
+object Space {
+    /** Between lines of a single block of prose. */
+    const val hairline = 0.25f
+
+    /** Between verses, and between cells in a grid. */
+    const val tight = 0.5f
+
+    /** Inside a tappable row, above and below its text. */
+    const val snug = 0.75f
+
+    /** The standard inset. Screen edges, and gaps between related things. */
+    const val base = 1f
+
+    /** Between a heading and what it heads. */
+    const val comfy = 1.5f
+
+    /** Between one section of a screen and the next. */
+    const val section = 2f
+}
+
+/** Horizontal inset shared by every scrolling body, so screens line up. */
+const val CONTENT_PADDING_UNITS = Space.base
+
+const val ROW_VERTICAL_PADDING_UNITS = Space.snug
