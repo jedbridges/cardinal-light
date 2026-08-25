@@ -90,6 +90,18 @@ Everything lives in `cardinal/`.
 | `ui/AboutScreen.kt` | What it is, who made it, and the scripture licences. |
 | `ui/*Screen.kt` | One file per screen, each a `LightScreen` plus its ViewModel. |
 
+### Why the APK is 8 MB and not 29
+
+`:sdk:ui` includes `LightQrCodeScanner`, which brings in ML Kit's barcode
+model. `libbarhopper_v3.so` is **19.3 MB of a 29 MB release APK** — two thirds
+of the download — shipped for four ABIs on a phone that is arm64 only. Cardinal
+never scans anything, so `cardinal/build.gradle.kts` excludes it and the
+release APK is 8.3 MB.
+
+Every screen was exercised on a debug build and on a minified release build
+with no missing classes. Worth knowing that this affects every tool built on
+the SDK, not just this one.
+
 ### Three decisions worth knowing about
 
 **No database.** The SDK blocks `android.content.Context`, so raw SQLite is

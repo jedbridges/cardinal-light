@@ -58,7 +58,17 @@ kotlin {
 }
 
 dependencies {
-    implementation(project(":sdk:client"))
+    implementation(project(":sdk:client")) {
+        // :sdk:ui ships LightQrCodeScanner, which pulls ML Kit's barcode model:
+        // libbarhopper_v3.so is 19.3 MB of a 29 MB release APK, two thirds of
+        // the whole thing, across four ABIs. Cardinal never scans anything, so
+        // it comes out and the APK is 8.3 MB. Every screen was exercised on
+        // debug and on a minified release build with no missing classes.
+        //
+        // If a tool here ever does want the scanner, delete these two lines.
+        exclude(group = "com.google.mlkit")
+        exclude(group = "com.google.android.gms", module = "play-services-mlkit-barcode-scanning")
+    }
     testImplementation(libs.kotlin.test)
     // No Room: reading position and highlights live in the SDK DataStore, and
     // scripture is read straight out of assets. See data/ReaderStore.kt.
