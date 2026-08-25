@@ -87,6 +87,7 @@ Everything lives in `cardinal/`.
 | `reader/WordSelection.kt` | Word-level selection maths. Copied unchanged from the Android port. |
 | `ui/ChapterText.kt` | The reader itself: tap to highlight, long-press to select words. |
 | `data/BibleSearch.kt` | Full-text search by scanning the assets. No index. |
+| `ui/AboutScreen.kt` | What it is, who made it, and the scripture licences. |
 | `ui/*Screen.kt` | One file per screen, each a `LightScreen` plus its ViewModel. |
 
 ### Three decisions worth knowing about

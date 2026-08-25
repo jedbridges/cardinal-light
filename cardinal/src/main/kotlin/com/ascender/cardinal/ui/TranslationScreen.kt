@@ -37,10 +37,7 @@ class TranslationViewModel(private val store: ReaderStore) : LightViewModel<Unit
     }
 }
 
-/**
- * Pick a translation. Attribution is shown rather than buried: the text being
- * free of copyright is the reason this tool can ship at all.
- */
+/** Pick a translation. The licence for each one is on the About screen. */
 private const val SELECT_ICON_UNITS = 1.6f
 
 class TranslationScreen(sealedActivity: SealedLightActivity) :
@@ -84,25 +81,6 @@ class TranslationScreen(sealedActivity: SealedLightActivity) :
                         }
                     }
 
-                    LightText(
-                        text = "Attribution",
-                        variant = LightTextVariant.Superfine,
-                        lighten = true,
-                        modifier = Modifier.padding(
-                            top = Space.section.gridUnitsAsDp(),
-                            bottom = Space.hairline.gridUnitsAsDp(),
-                        ),
-                    )
-                    Translation.entries.forEach { translation ->
-                        LightText(
-                            text = "${translation.code}. ${translation.attribution}",
-                            variant = LightTextVariant.Superfine,
-                            lighten = true,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = Space.hairline.gridUnitsAsDp()),
-                        )
-                    }
                 }
             }
         }
