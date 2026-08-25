@@ -9,12 +9,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -22,6 +25,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.SpanStyle
@@ -41,6 +45,9 @@ import com.thelightphone.sdk.ui.LightThemeTokens
 import com.thelightphone.sdk.ui.designVerticalPxToSp
 import com.thelightphone.sdk.ui.gridUnitsAsDp
 import com.thelightphone.sdk.ui.lightClickable
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /** A word and its character range within the rendered line. */
@@ -109,13 +116,41 @@ fun ChapterText(
     verses: List<VerseRecord>,
     highlights: List<Highlight>,
     modifier: Modifier = Modifier,
+    scrollToVerse: Int? = null,
     onVerseTap: (Int) -> Unit = {},
     onSelectionChanged: (List<VerseWordRange>) -> Unit = {},
+    onSettledAtVerse: (Int) -> Unit = {},
     footer: @Composable () -> Unit = {},
 ) {
     val model = remember(verses) { WordSelectionModel() }
     val layouts = remember(verses) { VerseLayouts() }
     val scrollState = rememberScrollState()
+
+    // Each verse's offset inside the scrolling column, as it is laid out.
+    // Snapshot state so the two effects below can wait for it.
+    val offsets = remember(verses) { mutableStateMapOf<Int, Int>() }
+
+    // Open on the verse that was asked for. A reference is a coordinate: being
+    // told "Genesis 46:32" and landing at 46:1 makes the reader hunt for what
+    // the app already knew.
+    LaunchedEffect(verses, scrollToVerse) {
+        val target = scrollToVerse ?: return@LaunchedEffect
+        val offset = snapshotFlow { offsets[target] }.filterNotNull().first()
+        scrollState.scrollTo(offset)
+    }
+
+    // Report where reading stopped, but only once scrolling settles, so this
+    // is a handful of writes per chapter rather than one per frame.
+    LaunchedEffect(verses) {
+        snapshotFlow { scrollState.isScrollInProgress }
+            .filter { !it }
+            .collect {
+                val top = offsets.entries
+                    .filter { it.value <= scrollState.value + TOP_SLOP }
+                    .maxByOrNull { it.value }?.key
+                if (top != null) onSettledAtVerse(top)
+            }
+    }
     val scope = rememberCoroutineScope()
     val haptics = LocalHapticFeedback.current
 
@@ -182,6 +217,7 @@ fun ChapterText(
                     layouts = layouts,
                     revision = revision,
                     onTap = { onVerseTap(verse.verse) },
+                    onOffset = { offsets[verse.verse] = it },
                 )
             }
             footer()
@@ -197,6 +233,7 @@ private fun SelectableVerse(
     layouts: VerseLayouts,
     revision: Int,
     onTap: () -> Unit,
+    onOffset: (Int) -> Unit,
 ) {
     val text = verse.text
     val prefix = "${verse.verse} "
@@ -241,7 +278,10 @@ private fun SelectableVerse(
             .lightClickable(onClickLabel = "Highlight verse ${verse.verse}", onClick = onTap)
             .padding(vertical = VERSE_VERTICAL_PADDING_UNITS.gridUnitsAsDp())
 
-            .onGloballyPositioned { layouts.put(verse.verse) { coords = it } },
+            .onGloballyPositioned {
+                layouts.put(verse.verse) { coords = it }
+                onOffset(it.positionInParent().y.toInt())
+            },
         onTextLayout = { layouts.put(verse.verse) { layout = it } },
     )
 }
@@ -336,5 +376,8 @@ private class VerseLayouts {
 }
 
 private const val AUTO_SCROLL_STEP = 24f
+
+/** A verse counts as "top" while its start is just above the fold. */
+private const val TOP_SLOP = 8
 /** Air between verses. Leaves a short verse just under a 44dp target, on purpose. */
 private const val VERSE_VERTICAL_PADDING_UNITS = Space.tight

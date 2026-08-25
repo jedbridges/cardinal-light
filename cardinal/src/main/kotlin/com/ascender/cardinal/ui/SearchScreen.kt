@@ -180,7 +180,7 @@ class SearchScreen(sealedActivity: SealedLightActivity) :
                             variant = LightTextVariant.Detail,
                             onClickLabel = "Read ${hit.reference}",
                             onClick = {
-                                navigateTo({ ReaderScreen(it, hit.book, hit.chapter) })
+                                navigateTo({ ReaderScreen(it, hit.book, hit.chapter, hit.verse) })
                             },
                         )
                     }

@@ -153,7 +153,12 @@ class HighlightsScreen(sealedActivity: SealedLightActivity) :
                                 onClickLabel = "Read ${highlight.reference}",
                                 onClick = {
                                     navigateTo({
-                                        ReaderScreen(it, highlight.book, highlight.chapter)
+                                        ReaderScreen(
+                                            it,
+                                            highlight.book,
+                                            highlight.chapter,
+                                            highlight.verse,
+                                        )
                                     })
                                 },
                             )

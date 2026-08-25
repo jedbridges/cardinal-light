@@ -40,6 +40,7 @@ data class ReaderUiState(
     val loading: Boolean = true,
     val previous: Reference? = null,
     val next: Reference? = null,
+    val openAtVerse: Int? = null,
 ) {
     val title: String get() = reference.display
     val hasPrevious: Boolean get() = previous != null
@@ -53,12 +54,18 @@ class ReaderViewModel(
     private val store: ReaderStore,
     private val repository: BibleRepository,
     initial: Reference,
+    openAtVerse: Int? = null,
 ) : LightViewModel<Unit>() {
 
-    private val _state = MutableStateFlow(ReaderUiState(reference = initial))
+    private val _state = MutableStateFlow(
+        ReaderUiState(reference = initial, openAtVerse = openAtVerse),
+    )
     val state: StateFlow<ReaderUiState> = _state.asStateFlow()
 
     val undo = UndoController(viewModelScope, store)
+
+    private val initialReference = initial
+    private val openAtVerse = openAtVerse
 
     init {
         viewModelScope.launch {
@@ -95,8 +102,11 @@ class ReaderViewModel(
             loading = false,
             previous = repository.previousChapter(reference.bookId, reference.chapter),
             next = repository.nextChapter(reference.bookId, reference.chapter),
+            // Only the chapter this screen was opened on has a target verse.
+            // Paging on to the next one starts at its beginning.
+            openAtVerse = openAtVerse.takeIf { reference == initialReference },
         )
-        store.setPosition(reference.bookId, reference.chapter)
+        store.setPosition(reference.bookId, reference.chapter, openAtVerse ?: 1)
     }
 
     /** Pages in place, so reading a book end to end leaves one back-stack entry. */
@@ -120,6 +130,14 @@ class ReaderViewModel(
                 verse,
             )
             undo.offer("Removed ${reference.display}:$verse", removed)
+        }
+    }
+
+    /** Where reading actually stopped, recorded when the scroll settles. */
+    fun rememberPosition(verse: Int) {
+        val reference = _state.value.reference
+        viewModelScope.launch {
+            store.setPosition(reference.bookId, reference.chapter, verse)
         }
     }
 
@@ -159,6 +177,7 @@ class ReaderScreen(
     sealedActivity: SealedLightActivity,
     private val bookId: Int,
     private val chapter: Int,
+    private val verse: Int? = null,
 ) : LightScreen<Unit, ReaderViewModel>(sealedActivity) {
 
     override val viewModelClass: Class<ReaderViewModel> get() = ReaderViewModel::class.java
@@ -167,6 +186,7 @@ class ReaderScreen(
         store = ReaderStore(lightContext.dataStore),
         repository = BibleRepository(readAsset = { lightContext.readAsset(it) }),
         initial = Reference(bookId, chapter),
+        openAtVerse = verse,
     )
 
     @Composable
@@ -196,8 +216,10 @@ class ReaderScreen(
                     verses = state.verses,
                     highlights = state.highlights,
                     modifier = Modifier.fillMaxSize(),
+                    scrollToVerse = state.openAtVerse,
                     onVerseTap = viewModel::toggleVerse,
                     onSelectionChanged = viewModel::commitSelection,
+                    onSettledAtVerse = viewModel::rememberPosition,
                     footer = { ChapterFooter(state) },
                 )
             }

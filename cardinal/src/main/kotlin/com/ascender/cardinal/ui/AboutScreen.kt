@@ -1,6 +1,8 @@
 package com.ascender.cardinal.ui
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -39,58 +41,84 @@ class AboutScreen(sealedActivity: SealedLightActivity) :
                         horizontal = CONTENT_PADDING_UNITS.gridUnitsAsDp(),
                     ),
                 ) {
-                    Paragraph(
-                        "Cardinal is a Bible reader. Three translations, every " +
-                            "verse on the phone, nothing to sign in to and no " +
-                            "connection needed."
+                    // A lead, then labelled facts, then fine print. Everything
+                    // used to sit at one size, so the description, the author,
+                    // the URL and the licences all read with equal weight.
+                    Lead(
+                        "A Bible reader. Three translations, every verse on the " +
+                            "phone, nothing to sign in to and no connection needed."
                     )
-                    Paragraph("Adapted from Cardinal for iOS.")
+                    FinePrint("Adapted from Cardinal for iOS.")
 
-                    Heading("Made by")
-                    Paragraph("Jed Bridges")
+                    Label("Made by")
+                    Fact("Jed Bridges")
 
-                    Heading("Source")
-                    Paragraph(CARDINAL_SOURCE)
-                    Paragraph("Open source under the MIT licence.")
+                    Label("Source")
+                    // Set apart from the prose because it is meant to be copied
+                    // down, not read. It cannot be a link: a tool has no way to
+                    // open one and the phone has no browser.
+                    Fact(CARDINAL_SOURCE, monospace = true)
+                    FinePrint("Open source under the MIT licence.")
 
-                    Heading("Scripture")
+                    Label("Scripture")
                     Translation.entries.forEach { translation ->
-                        Paragraph("${translation.displayName}. ${translation.attribution}")
+                        Fact(translation.displayName)
+                        FinePrint(translation.attribution)
                     }
 
-                    Heading("Version")
-                    Paragraph(
-                        text = CARDINAL_VERSION,
-                        bottom = Space.section,
-                    )
+                    Label("Version")
+                    Fact(CARDINAL_VERSION)
+                    Spacer(modifier = Modifier.height(Space.section.gridUnitsAsDp()))
                 }
             }
         }
     }
 
+    /** The one sentence that says what this is. */
     @Composable
-    private fun Heading(text: String) {
+    private fun Lead(text: String) {
+        LightText(
+            text = text,
+            variant = LightTextVariant.Copy,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = Space.tight.gridUnitsAsDp()),
+        )
+    }
+
+    @Composable
+    private fun Label(text: String) {
         LightText(
             text = text,
             variant = LightTextVariant.Superfine,
             lighten = true,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(
-                    top = Space.comfy.gridUnitsAsDp(),
-                    bottom = Space.hairline.gridUnitsAsDp(),
-                ),
+                .padding(top = Space.section.gridUnitsAsDp()),
         )
     }
 
     @Composable
-    private fun Paragraph(text: String, bottom: Float = Space.hairline) {
+    private fun Fact(text: String, monospace: Boolean = false) {
         LightText(
             text = text,
             variant = LightTextVariant.Detail,
+            monospace = monospace,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = Space.hairline.gridUnitsAsDp(), bottom = bottom.gridUnitsAsDp()),
+                .padding(top = Space.hairline.gridUnitsAsDp()),
+        )
+    }
+
+    @Composable
+    private fun FinePrint(text: String) {
+        LightText(
+            text = text,
+            variant = LightTextVariant.Superfine,
+            lighten = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = Space.hairline.gridUnitsAsDp()),
         )
     }
 }

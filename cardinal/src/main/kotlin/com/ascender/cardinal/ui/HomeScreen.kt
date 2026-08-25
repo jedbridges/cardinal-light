@@ -63,7 +63,7 @@ class HomeScreen(sealedActivity: SealedLightActivity) :
                 CardinalRow(
                     text = "${book?.name ?: "John"} ${state.lastChapter}",
                     variant = LightTextVariant.Heading,
-                    onClick = { openReader(state.lastBook, state.lastChapter) },
+                    onClick = { openReader(state.lastBook, state.lastChapter, state.lastVerse) },
                 )
 
                 // Where you left off is a different kind of thing from a list
@@ -89,7 +89,7 @@ class HomeScreen(sealedActivity: SealedLightActivity) :
         }
     }
 
-    private fun openReader(bookId: Int, chapter: Int) {
-        navigateTo({ ReaderScreen(it, bookId, chapter) })
+    private fun openReader(bookId: Int, chapter: Int, verse: Int) {
+        navigateTo({ ReaderScreen(it, bookId, chapter, verse) })
     }
 }
