@@ -46,35 +46,50 @@ class ReaderStore(private val dataStore: DataStore<Preferences>) {
     }
 
     /**
-     * Tap-to-highlight.
+     * Tap-to-highlight, as a three-step cycle: nothing, whole verse, nothing.
      *
-     * Any existing highlight on the verse wins: tapping a verse that carries a
-     * word-level highlight clears it rather than adding a whole-verse one on
-     * top, which is what a reader expects from a single tap on something
-     * already marked.
+     * A verse carrying a word-level mark is PROMOTED to a whole-verse mark
+     * rather than cleared. The earlier version wiped it, which meant one
+     * careless tap during reading destroyed a selection someone had dragged out
+     * word by word, with no way back. Reading and marking share a gesture here;
+     * that gesture must never be the one that loses work.
+     *
+     * Returns whatever it removed, so the caller can offer an undo. A promotion
+     * returns nothing, because nothing was lost.
      */
-    suspend fun toggleVerse(translation: Translation, bookId: Int, chapter: Int, verse: Int) {
+    suspend fun toggleVerse(
+        translation: Translation,
+        bookId: Int,
+        chapter: Int,
+        verse: Int,
+    ): List<Highlight> {
+        var removed = emptyList<Highlight>()
         editHighlights { current ->
-            val existing = current.filter { it.isOn(bookId, chapter, verse) }
-            if (existing.isNotEmpty()) {
-                current - existing.toSet()
-            } else {
-                current + Highlight(bookId, chapter, verse, translation = translation.code)
-            }
+            val result = toggleVerseIn(current, translation, bookId, chapter, verse)
+            removed = result.removed
+            result.highlights
         }
+        return removed
     }
 
-    /** Commits a word-level drag selection, replacing whatever those verses had. */
+    /**
+     * Commits a word-level drag selection, replacing whatever those verses had.
+     * Returns the marks it displaced so the caller can offer an undo.
+     */
     suspend fun setWordRanges(
         translation: Translation,
         bookId: Int,
         chapter: Int,
         ranges: List<VerseWordRange>,
-    ) {
-        if (ranges.isEmpty()) return
+    ): List<Highlight> {
+        if (ranges.isEmpty()) return emptyList()
         val touched = ranges.map { it.verse }.toSet()
+        var replaced = emptyList<Highlight>()
         editHighlights { current ->
-            current.filterNot { it.book == bookId && it.chapter == chapter && it.verse in touched } +
+            replaced = current.filter {
+                it.book == bookId && it.chapter == chapter && it.verse in touched
+            }
+            current - replaced.toSet() +
                 ranges.map {
                     Highlight(
                         book = bookId,
@@ -86,14 +101,24 @@ class ReaderStore(private val dataStore: DataStore<Preferences>) {
                     )
                 }
         }
+        return replaced
     }
 
+    /** Deliberate deletion, from the highlights list. */
     suspend fun remove(highlight: Highlight) {
         editHighlights { it - highlight }
     }
 
-    suspend fun clearHighlights() {
-        editHighlights { emptyList() }
+    /**
+     * Puts back what an undo asks for, at the end of the list.
+     *
+     * Order is insertion order and the highlights screen reads it newest-first,
+     * so a restored mark reappears at the top rather than wherever it used to
+     * sit. That is the honest answer: it was just acted on.
+     */
+    suspend fun restore(highlights: List<Highlight>) {
+        if (highlights.isEmpty()) return
+        editHighlights { current -> current + highlights.filterNot { it in current } }
     }
 
     private suspend fun editHighlights(transform: (List<Highlight>) -> List<Highlight>) {
@@ -116,5 +141,37 @@ class ReaderStore(private val dataStore: DataStore<Preferences>) {
         val LAST_CHAPTER = intPreferencesKey("last_chapter")
         val LAST_VERSE = intPreferencesKey("last_verse")
         val HIGHLIGHTS = stringPreferencesKey("highlights")
+    }
+}
+
+/** What a tap did: the new list, and anything it took away. */
+data class ToggleResult(val highlights: List<Highlight>, val removed: List<Highlight>)
+
+/**
+ * The tap-to-highlight decision, as a pure function so it can be tested
+ * without a DataStore.
+ *
+ * The rule that matters: a verse carrying partial marks is widened, never
+ * cleared. Only an existing whole-verse mark is removed by a tap, and that
+ * removal is reported so it can be undone.
+ */
+fun toggleVerseIn(
+    current: List<Highlight>,
+    translation: Translation,
+    bookId: Int,
+    chapter: Int,
+    verse: Int,
+): ToggleResult {
+    val existing = current.filter { it.isOn(bookId, chapter, verse) }
+    val wholeVerse = Highlight(bookId, chapter, verse, translation = translation.code)
+    return when {
+        existing.isEmpty() ->
+            ToggleResult(current + wholeVerse, emptyList())
+
+        existing.any { !it.isWholeVerse } ->
+            ToggleResult(current - existing.toSet() + wholeVerse, emptyList())
+
+        else ->
+            ToggleResult(current - existing.toSet(), existing)
     }
 }

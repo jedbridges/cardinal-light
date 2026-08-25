@@ -1,6 +1,8 @@
 package com.ascender.cardinal.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,27 +35,34 @@ fun CardinalScreen(
     title: String,
     onBack: (() -> Unit)? = null,
     subtitle: String? = null,
+    overlay: @Composable BoxScope.() -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val themeColors by LightThemeController.colors.collectAsState()
 
     LightTheme(colors = themeColors) {
-        Column(
+        // A Box rather than a bare Column so [overlay] can pin something to the
+        // bottom edge without taking height from the content above it. The undo
+        // row uses this; nothing should be allowed to reflow scripture.
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(LightThemeTokens.colors.background),
         ) {
-            LightTopBar(
-                leftButton = onBack?.let {
-                    LightBarButton.LightIcon(icon = LightIcons.BACK, onClick = it)
-                },
-                center = if (subtitle != null) {
-                    LightTopBarCenter.TwoLineDetail(line1 = title, line2 = subtitle)
-                } else {
-                    LightTopBarCenter.Text(text = title)
-                },
-            )
-            content()
+            Column(modifier = Modifier.fillMaxSize()) {
+                LightTopBar(
+                    leftButton = onBack?.let {
+                        LightBarButton.LightIcon(icon = LightIcons.BACK, onClick = it)
+                    },
+                    center = if (subtitle != null) {
+                        LightTopBarCenter.TwoLineDetail(line1 = title, line2 = subtitle)
+                    } else {
+                        LightTopBarCenter.Text(text = title)
+                    },
+                )
+                content()
+            }
+            overlay()
         }
     }
 }

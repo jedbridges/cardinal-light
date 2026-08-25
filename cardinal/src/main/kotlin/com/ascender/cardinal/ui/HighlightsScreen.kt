@@ -1,12 +1,15 @@
 package com.ascender.cardinal.ui
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewModelScope
 import com.ascender.cardinal.data.BibleRepository
@@ -17,10 +20,13 @@ import com.ascender.cardinal.data.Translation
 import com.thelightphone.sdk.LightScreen
 import com.thelightphone.sdk.LightViewModel
 import com.thelightphone.sdk.SealedLightActivity
+import com.thelightphone.sdk.ui.LightIcon
+import com.thelightphone.sdk.ui.LightIcons
 import com.thelightphone.sdk.ui.LightScrollView
 import com.thelightphone.sdk.ui.LightText
 import com.thelightphone.sdk.ui.LightTextVariant
 import com.thelightphone.sdk.ui.gridUnitsAsDp
+import com.thelightphone.sdk.ui.lightClickable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -28,12 +34,28 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class HighlightsViewModel(
-    store: ReaderStore,
+    private val store: ReaderStore,
     private val repository: BibleRepository,
 ) : LightViewModel<Unit>() {
 
     val state: StateFlow<ReaderState> =
         store.state.stateIn(viewModelScope, SharingStarted.Eagerly, ReaderState())
+
+    val undo = UndoController(viewModelScope, store)
+
+    /**
+     * The deliberate way to remove a mark.
+     *
+     * Until this existed, `ReaderStore.remove` had no caller and the only way
+     * to lose a highlight was to tap the wrong verse while reading. Deletion
+     * belongs here, where you can see what you are deleting.
+     */
+    fun delete(highlight: Highlight) {
+        viewModelScope.launch {
+            store.remove(highlight)
+            undo.offer("Removed ${highlight.reference}", listOf(highlight))
+        }
+    }
 
     /**
      * The verse text is not stored with the highlight, only the reference, so
@@ -82,13 +104,26 @@ class HighlightsScreen(sealedActivity: SealedLightActivity) :
     override fun Content() {
         val state by viewModel.state.collectAsState()
         val previews by viewModel.previews.collectAsState()
+        val pendingUndo by viewModel.undo.pending.collectAsState()
         val highlights = state.highlights.asReversed()
 
         LaunchedEffect(highlights, state.translation) {
             highlights.forEach { viewModel.loadPreview(it, state.currentTranslation) }
         }
 
-        CardinalScreen(title = "Highlights", onBack = { goBack() }) {
+        CardinalScreen(
+            title = "Highlights",
+            onBack = { goBack() },
+            overlay = {
+                pendingUndo?.let {
+                    UndoRow(
+                        pending = it,
+                        onUndo = viewModel.undo::undo,
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                    )
+                }
+            },
+        ) {
             if (highlights.isEmpty()) {
                 LightText(
                     text = "Tap a verse while reading to highlight it.",
@@ -109,16 +144,30 @@ class HighlightsScreen(sealedActivity: SealedLightActivity) :
                     ),
                 ) {
                     highlights.forEach { highlight ->
-                        CardinalRow(
-                            text = highlight.reference,
-                            detail = previews[highlight.key]?.let { preview(it, highlight) },
-                            variant = LightTextVariant.Detail,
-                            onClick = {
-                                navigateTo({
-                                    ReaderScreen(it, highlight.book, highlight.chapter)
-                                })
-                            },
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            CardinalRow(
+                                text = highlight.reference,
+                                detail = previews[highlight.key]?.let { preview(it, highlight) },
+                                variant = LightTextVariant.Detail,
+                                modifier = Modifier.weight(1f),
+                                onClick = {
+                                    navigateTo({
+                                        ReaderScreen(it, highlight.book, highlight.chapter)
+                                    })
+                                },
+                            )
+                            LightIcon(
+                                icon = LightIcons.TRASH,
+                                size = 1.6f,
+                                contentDescription = "Remove ${highlight.reference}",
+                                modifier = Modifier
+                                    .lightClickable { viewModel.delete(highlight) }
+                                    .padding(start = 1f.gridUnitsAsDp()),
+                            )
+                        }
                     }
                 }
             }

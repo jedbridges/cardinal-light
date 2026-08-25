@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.viewModelScope
 import com.ascender.cardinal.data.BibleRepository
 import com.ascender.cardinal.data.Highlight
@@ -19,8 +21,10 @@ import com.ascender.cardinal.reader.VerseWordRange
 import com.thelightphone.sdk.LightScreen
 import com.thelightphone.sdk.LightViewModel
 import com.thelightphone.sdk.SealedLightActivity
+import androidx.compose.material3.HorizontalDivider
 import com.thelightphone.sdk.ui.LightText
 import com.thelightphone.sdk.ui.LightTextVariant
+import com.thelightphone.sdk.ui.LightThemeTokens
 import com.thelightphone.sdk.ui.gridUnitsAsDp
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -53,6 +57,8 @@ class ReaderViewModel(
 
     private val _state = MutableStateFlow(ReaderUiState(reference = initial))
     val state: StateFlow<ReaderUiState> = _state.asStateFlow()
+
+    val undo = UndoController(viewModelScope, store)
 
     init {
         viewModelScope.launch {
@@ -105,32 +111,38 @@ class ReaderViewModel(
 
     private fun move(next: (Reference) -> Reference?) {
         val target = next(_state.value.reference) ?: return
+        undo.dismiss()
         viewModelScope.launch { open(_state.value.translation, target) }
     }
 
     fun toggleVerse(verse: Int) {
         val reference = _state.value.reference
         viewModelScope.launch {
-            store.toggleVerse(
+            val removed = store.toggleVerse(
                 _state.value.translation,
                 reference.bookId,
                 reference.chapter,
                 verse,
             )
+            undo.offer("Highlight removed", removed)
         }
     }
 
     fun commitSelection(ranges: List<VerseWordRange>) {
         val reference = _state.value.reference
         viewModelScope.launch {
-            store.setWordRanges(
+            val replaced = store.setWordRanges(
                 _state.value.translation,
                 reference.bookId,
                 reference.chapter,
                 ranges,
             )
+            undo.offer("Highlight replaced", replaced)
         }
     }
+
+    /** Paging away from a chapter retires its undo; the row would outlive its context. */
+    fun dismissUndo() = undo.dismiss()
 }
 
 /**
@@ -154,11 +166,21 @@ class ReaderScreen(
     @Composable
     override fun Content() {
         val state by viewModel.state.collectAsState()
+        val pendingUndo by viewModel.undo.pending.collectAsState()
 
         CardinalScreen(
             title = state.title,
             subtitle = state.translation.code,
             onBack = { goBack() },
+            overlay = {
+                pendingUndo?.let {
+                    UndoRow(
+                        pending = it,
+                        onUndo = viewModel.undo::undo,
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                    )
+                }
+            },
         ) {
             when {
                 state.loading -> Placeholder("...")
@@ -179,19 +201,44 @@ class ReaderScreen(
      * Paging lives at the end of the text, not in a persistent bar. The screen
      * is 31 grid units tall and a bar would spend four of them telling you
      * about a chapter you have not finished yet.
+     *
+     * Two things here were wrong and are worth naming. The rows used to render
+     * at Copy, which is 30 design px against scripture's 25 — the controls were
+     * a fifth larger than the words they were interrupting, in an app whose
+     * first principle is that the text is primary. And the labels were
+     * asymmetric, a generic "Previous" stacked above a named "John 2", which
+     * scans top-to-bottom as though John 2 were the chapter behind you.
+     *
+     * Both chapters are named now, both sit below scripture in the type scale,
+     * and a rule separates the navigation from the last verse.
      */
     @Composable
     private fun ChapterFooter(state: ReaderUiState) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 1.5f.gridUnitsAsDp(), bottom = 2f.gridUnitsAsDp()),
+                .padding(top = 2f.gridUnitsAsDp(), bottom = 2.5f.gridUnitsAsDp()),
         ) {
-            if (state.hasPrevious) {
-                CardinalRow(text = "Previous", onClick = viewModel::goToPrevious)
+            HorizontalDivider(
+                color = LightThemeTokens.colors.contentSecondary,
+                thickness = Dp.Hairline,
+                modifier = Modifier.padding(bottom = 1f.gridUnitsAsDp()),
+            )
+            state.previous?.let { previous ->
+                CardinalRow(
+                    text = previous.display,
+                    detail = "Previous",
+                    variant = LightTextVariant.Detail,
+                    onClick = viewModel::goToPrevious,
+                )
             }
-            if (state.hasNext) {
-                CardinalRow(text = state.nextLabel, onClick = viewModel::goToNext)
+            state.next?.let { next ->
+                CardinalRow(
+                    text = next.display,
+                    detail = "Next",
+                    variant = LightTextVariant.Detail,
+                    onClick = viewModel::goToNext,
+                )
             }
         }
     }
