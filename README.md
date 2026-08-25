@@ -7,6 +7,9 @@ That is the whole app. There is no AI, no memorization, no reading plan, no
 account, no sync, no streaks, and no network call of any kind. Every verse of
 all three translations ships inside the APK.
 
+Search is offline too: it scans the bundled text directly rather than keeping
+an index, so there is nothing to build on first run and nothing to migrate.
+
 Cardinal is the reading half of [the iOS app of the same
 name](https://apps.apple.com/app/cardinal), rebuilt from scratch for LightOS
 rather than ported. The iOS app is SwiftUI; this is Kotlin and Compose against
@@ -83,6 +86,7 @@ Everything lives in `cardinal/`.
 | `data/ReaderStore.kt` | Reading position and highlights, in the SDK's DataStore. |
 | `reader/WordSelection.kt` | Word-level selection maths. Copied unchanged from the Android port. |
 | `ui/ChapterText.kt` | The reader itself: tap to highlight, long-press to select words. |
+| `data/BibleSearch.kt` | Full-text search by scanning the assets. No index. |
 | `ui/*Screen.kt` | One file per screen, each a `LightScreen` plus its ViewModel. |
 
 ### Three decisions worth knowing about
@@ -149,8 +153,11 @@ the event and suppresses the volume change.
   Light.
 - **Word selection is undiscoverable.** Long-press and drag selects words, and
   nothing in the interface says so.
-- **No search.** Deliberate for v1, and the most-missed thing on a device with
-  no browser to fall back on.
+- **Search speed on real hardware is unmeasured.** Scanning the whole corpus
+  takes 17 ms on a JVM but about 2.5 s on the emulator, where 66 asset reads
+  dominate. Parsing is not the cause, and neither is asset compression —
+  shipping the assets uncompressed measured slower and cost 11 MB. A real
+  device would settle it.
 - **No notes.** Deferred; typing on the LP3 keyboard is workable but slow.
 
 ## Licence

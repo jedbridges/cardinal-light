@@ -66,6 +66,7 @@ class HomeScreen(sealedActivity: SealedLightActivity) :
                 )
 
                 CardinalRow(text = "Books", onClick = { navigateTo(::BookListScreen) })
+                CardinalRow(text = "Search", onClick = { navigateTo(::SearchScreen) })
                 CardinalRow(
                     text = "Highlights",
                     detail = state.highlights.size.takeIf { it > 0 }
