@@ -90,15 +90,9 @@ class HomeScreen(sealedActivity: SealedLightActivity) :
                     onClick = { navigateTo(::HighlightsScreen) },
                 )
                 CardinalRow(
-                    text = "Translation",
-                    onClickLabel = "Change translation",
-                    detail = state.currentTranslation.displayName,
-                    onClick = { navigateTo(::TranslationScreen) },
-                )
-                CardinalRow(
-                    text = "About",
-                    onClickLabel = "About Cardinal",
-                    onClick = { navigateTo(::AboutScreen) },
+                    text = "Settings",
+                    onClickLabel = "Translation and about",
+                    onClick = { navigateTo(::SettingsScreen) },
                 )
             }
         }
