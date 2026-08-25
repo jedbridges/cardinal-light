@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.input.TextFieldState
-import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import androidx.compose.foundation.text.input.setTextAndSelectAll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -41,6 +41,15 @@ class SearchViewModel(
     private val search: BibleSearch,
 ) : LightViewModel<Unit>() {
 
+    /**
+     * The query lives here, not in the composition. It used to be held in a
+     * remembered TextFieldState, which is disposed when you open a result,
+     * while the results stayed in this ViewModel — so coming back showed a
+     * screen full of hits above a field that had reverted to its placeholder.
+     */
+    private val _query = MutableStateFlow("")
+    val query: StateFlow<String> = _query.asStateFlow()
+
     private val _results = MutableStateFlow<SearchResults?>(null)
     val results: StateFlow<SearchResults?> = _results.asStateFlow()
 
@@ -63,6 +72,7 @@ class SearchViewModel(
     fun cancelEdit() { _editing.value = false }
 
     fun submit(query: String) {
+        _query.value = query.trim()
         _editing.value = false
         // A second submit replaces the first rather than racing it. Scanning
         // the corpus is not instant, and stale results outliving their query
@@ -70,7 +80,7 @@ class SearchViewModel(
         running?.cancel()
         running = viewModelScope.launch {
             _searching.value = true
-            _results.value = search.search(_translation.value, query)
+            _results.value = search.search(_translation.value, _query.value)
             _searching.value = false
         }
     }
@@ -96,6 +106,7 @@ class SearchScreen(sealedActivity: SealedLightActivity) :
     @Composable
     override fun Content() {
         val editing by viewModel.editing.collectAsState()
+        val query by viewModel.query.collectAsState()
         val results by viewModel.results.collectAsState()
         val searching by viewModel.searching.collectAsState()
         val translation by viewModel.translation.collectAsState()
@@ -121,10 +132,13 @@ class SearchScreen(sealedActivity: SealedLightActivity) :
         CardinalScreen(title = "Search", subtitle = translation.code, onBack = { goBack() }) {
             LightTextField(
                 label = "Find",
-                value = field.text.toString(),
+                value = query,
                 placeholder = "a word or phrase",
                 onClick = {
-                    field.setTextAndPlaceCursorAtEnd(field.text.toString())
+                    // Seeded from the query and selected, so a second search
+                    // starts by typing over the first rather than by pressing
+                    // backspace once per character.
+                    field.setTextAndSelectAll(query)
                     viewModel.edit()
                 },
                 modifier = Modifier.padding(horizontal = CONTENT_PADDING_UNITS.gridUnitsAsDp()),

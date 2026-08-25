@@ -128,17 +128,30 @@ class BibleSearch(private val readAsset: (String) -> ByteArray) {
 
 /**
  * A window of the verse around the first match, so a long verse still shows
- * why it matched. Ellipses only where text was actually cut.
+ * why it matched. Cuts fall on word boundaries: "…they have brought th…" reads
+ * like a rendering fault rather than an elision.
  */
 fun snippet(text: String, query: String, width: Int = 90): String {
     val at = text.indexOf(query, ignoreCase = true)
     if (at < 0 || text.length <= width) return text
-    val start = (at - width / 3).coerceAtLeast(0)
-    val end = (start + width).coerceAtMost(text.length)
-    val body = text.substring(start, end).trim()
+
+    var start = (at - width / 3).coerceAtLeast(0)
+    var end = (start + width).coerceAtMost(text.length)
+
+    // Pull the head forward to the next space, but never past the match.
+    if (start > 0) {
+        val space = text.indexOf(' ', start)
+        if (space in start until at) start = space + 1
+    }
+    // Pull the tail back to the previous space, but never before the match.
+    if (end < text.length) {
+        val space = text.lastIndexOf(' ', end)
+        if (space >= at + query.length) end = space
+    }
+
     return buildString {
         if (start > 0) append("…")
-        append(body)
+        append(text.substring(start, end).trim())
         if (end < text.length) append("…")
     }
 }

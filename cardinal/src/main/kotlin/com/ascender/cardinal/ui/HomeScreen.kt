@@ -1,6 +1,8 @@
 package com.ascender.cardinal.ui
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -64,6 +66,11 @@ class HomeScreen(sealedActivity: SealedLightActivity) :
                     variant = LightTextVariant.Heading,
                     onClick = { openReader(state.lastBook, state.lastChapter) },
                 )
+
+                // Where you left off is a different kind of thing from a list
+                // of places to go. Without a break it sat on the same rhythm as
+                // the rows below and read as the first of five destinations.
+                Spacer(modifier = Modifier.height(Space.section.gridUnitsAsDp()))
 
                 CardinalRow(text = "Books", onClick = { navigateTo(::BookListScreen) })
                 CardinalRow(text = "Search", onClick = { navigateTo(::SearchScreen) })

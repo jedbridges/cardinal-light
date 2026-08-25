@@ -122,4 +122,37 @@ class BibleSearchTest {
     @Test fun `snippet leaves a short verse alone`() {
         assertEquals("Jesus wept.", snippet("Jesus wept.", "wept"))
     }
+
+    @Test fun `snippet cuts on word boundaries, not mid-word`() {
+        // The verse that exposed this: it used to end "...brought th…".
+        val verse = "These men are shepherds, for they have been keepers of " +
+            "livestock, and they have brought their flocks and their herds " +
+            "and all that they have."
+        val out = snippet(verse, "shepherds")
+        assertTrue(out.contains("shepherds"), out)
+        val body = out.trim('…').trim()
+        // Every word in the window must be a whole word from the verse.
+        body.split(" ").filter { it.isNotBlank() }.forEach { word ->
+            assertTrue(
+                verse.split(" ").any { it.trim(',', '.', ';', ':') == word.trim(',', '.', ';', ':') },
+                "'$word' is a fragment, not a whole word, in: $out",
+            )
+        }
+    }
+
+    @Test fun `snippet still windows when the match sits at the very end`() {
+        val verse = "a".repeat(150) + " the final word is needle"
+        val out = snippet(verse, "needle")
+        assertTrue(out.contains("needle"), out)
+        assertTrue(out.startsWith("…"), "head should be marked as cut: $out")
+        assertTrue(!out.endsWith("…"), "nothing was cut from the tail: $out")
+    }
+
+    @Test fun `snippet never drops the match itself`() = runBlocking {
+        // Across a real spread of verses, the window always contains the word.
+        search().search(Translation.WEB, "shepherd", limit = 60).hits.forEach {
+            val out = snippet(it.text, "shepherd")
+            assertTrue(out.contains("shepherd", ignoreCase = true), "lost the match in: $out")
+        }
+    }
 }
