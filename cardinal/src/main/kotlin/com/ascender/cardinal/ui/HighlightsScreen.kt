@@ -46,13 +46,7 @@ class HighlightsViewModel(
 
     val undo = UndoController(viewModelScope, store)
 
-    /**
-     * The deliberate way to remove a mark.
-     *
-     * Until this existed, `ReaderStore.remove` had no caller and the only way
-     * to lose a highlight was to tap the wrong verse while reading. Deletion
-     * belongs here, where you can see what you are deleting.
-     */
+    /** Deletion belongs here, where you can see what you are deleting. */
     fun delete(highlight: Highlight) {
         viewModelScope.launch {
             store.remove(highlight)
@@ -61,10 +55,8 @@ class HighlightsViewModel(
     }
 
     /**
-     * The verse text is not stored with the highlight, only the reference, so
-     * each row is resolved from the assets. Keeping one copy of the text in the
-     * asset files rather than two also means a highlight made in one
-     * translation still shows the right words after switching to another.
+     * Only the reference is stored, so previews resolve from the assets. That
+     * also means a mark reads correctly after switching translation.
      */
     private val _previews = MutableStateFlow<Map<String, String>>(emptyMap())
     val previews: StateFlow<Map<String, String>> = _previews
@@ -86,12 +78,7 @@ class HighlightsViewModel(
 
 private val Highlight.key: String get() = "$book:$chapter:$verse:$startWord:$endWord"
 
-/**
- * Every highlighted verse, newest first.
- *
- * Highlights are stored in insertion order, so "newest first" is a reversal
- * rather than a sort on a timestamp nobody would ever see.
- */
+/** Every highlighted verse, newest first. Insertion order, so just reversed. */
 private val MIN_TOUCH_TARGET = 44.dp
 private const val TRASH_ICON_UNITS = 1.6f
 
@@ -166,10 +153,7 @@ class HighlightsScreen(sealedActivity: SealedLightActivity) :
                                     })
                                 },
                             )
-                            // The icon is 1.6 grid units, about 24dp. Sizing
-                            // the touch area to 44dp separately means the
-                            // target meets the minimum without drawing a
-                            // bigger trash can than the row deserves.
+                            // 24dp icon, 44dp target.
                             Box(
                                 modifier = Modifier
                                     .size(MIN_TOUCH_TARGET)
@@ -191,7 +175,7 @@ class HighlightsScreen(sealedActivity: SealedLightActivity) :
         }
     }
 
-    /** The highlighted words for a word-level mark, the opening line otherwise. */
+    /** The marked words, or the opening line for a whole-verse mark. */
     private fun preview(text: String, highlight: Highlight): String {
         if (highlight.isWholeVerse) return text.take(PREVIEW_CHARS).trim()
         val words = text.split(" ").filter { it.isNotBlank() }

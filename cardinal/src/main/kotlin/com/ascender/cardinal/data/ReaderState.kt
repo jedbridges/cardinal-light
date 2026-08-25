@@ -3,14 +3,11 @@ package com.ascender.cardinal.data
 import kotlinx.serialization.Serializable
 
 /**
- * One highlight.
+ * One highlight. Both indices null means the whole verse.
  *
- * The word-range shape mirrors `BibleHighlight.startWordIndex` /
- * `endWordIndex` in the iOS app, so a selection spanning several verses stores
- * one entry per verse rather than one flat range. Nothing syncs in this tool,
- * but keeping the shape means a future import has somewhere to land.
- *
- * Both indices null means the whole verse.
+ * The word-range shape mirrors iOS `BibleHighlight`, so a multi-verse
+ * selection stores one entry per verse. Nothing syncs, but a future import
+ * has somewhere to land.
  */
 @Serializable
 data class Highlight(
@@ -32,12 +29,7 @@ data class Highlight(
     val reference: String get() = "${BibleBook.byId(book)?.name ?: "?"} $chapter:$verse"
 }
 
-/**
- * Everything the reader remembers between launches.
- *
- * Highlights are held in insertion order, so the highlights screen can show
- * newest-first by reversing rather than by carrying a timestamp on every entry.
- */
+/** What the reader remembers between launches. Highlights in insertion order. */
 @Serializable
 data class ReaderState(
     val translation: String = Translation.default.code,

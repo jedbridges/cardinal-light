@@ -7,11 +7,8 @@ import kotlin.math.abs
 /**
  * Word-level selection across a scrolling chapter.
  *
- * Copied verbatim from the Cardinal Android port and deliberately kept that
- * way, which is why `frameFor` and `clearFrames` are here without callers:
- * they belong to this component's API on the other side. Trimming them to
- * satisfy a dead-code sweep would fork a file whose whole value is being the
- * same file in both places.
+ * Copied verbatim from the Cardinal Android port and kept that way, which is
+ * why `frameFor` and `clearFrames` have no callers here.
  *
  * This mirrors the iOS TextSelectionManager rather than reinventing it: words
  * register a frame in one shared coordinate space, a point is hit-tested

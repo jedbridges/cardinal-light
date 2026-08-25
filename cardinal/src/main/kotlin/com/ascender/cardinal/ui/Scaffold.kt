@@ -24,12 +24,7 @@ import com.thelightphone.sdk.ui.LightTopBarCenter
 import com.thelightphone.sdk.ui.gridUnitsAsDp
 import com.thelightphone.sdk.ui.lightClickable
 
-/**
- * Every screen in the tool: theme, background, a top bar, then content.
- *
- * Padding is always in grid units. The LP3 grid is 27 x 31, so a hardcoded dp
- * value would be right on one panel and wrong on the next.
- */
+/** Every screen: theme, background, top bar, content. */
 @Composable
 fun CardinalScreen(
     title: String,
@@ -41,9 +36,7 @@ fun CardinalScreen(
     val themeColors by LightThemeController.colors.collectAsState()
 
     LightTheme(colors = themeColors) {
-        // A Box rather than a bare Column so [overlay] can pin something to the
-        // bottom edge without taking height from the content above it. The undo
-        // row uses this; nothing should be allowed to reflow scripture.
+        // Box so [overlay] can pin to the bottom without reflowing content.
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -67,7 +60,7 @@ fun CardinalScreen(
     }
 }
 
-/** A tappable line of text. The whole width is the target, not just the glyphs. */
+/** A tappable line. The full width is the target, not just the glyphs. */
 @Composable
 fun CardinalRow(
     text: String,
@@ -91,15 +84,9 @@ fun CardinalRow(
 }
 
 /**
- * The spacing scale, in LightOS grid units.
- *
- * The grid is 27 across by 31 down, so one unit is about 15dp on the LP3 and
- * scales with the panel. Everything spatial in this tool comes from here:
- * before this existed the screens used eight different ad-hoc literals
- * (0.25, 0.4, 0.5, 0.9, 1, 1.5, 2, 2.5) which is how layouts drift out of
- * rhythm one reasonable-looking decision at a time.
- *
- * Never write a bare `1.3f.gridUnitsAsDp()`. Add a step here if none fits.
+ * The spacing scale, in LightOS grid units. The grid is 27 x 31, so a unit is
+ * about 15dp and scales with the panel. Add a step rather than writing a bare
+ * `1.3f.gridUnitsAsDp()`.
  */
 object Space {
     /** Between lines of a single block of prose. */

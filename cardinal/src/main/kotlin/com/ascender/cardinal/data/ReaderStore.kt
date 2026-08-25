@@ -11,13 +11,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
 
 /**
- * Reading position and highlights, kept in the SDK's DataStore.
- *
- * Room is available and would be the reflex choice for highlights, but
- * `buildDatabase` gives no migration hooks whatsoever, so a schema mistake in
- * v1 would leave no clean upgrade path. This data is small and always read
- * whole, so a serialized JSON string in preferences is both simpler and safer.
- * The weather example in the SDK stores its complex values the same way.
+ * Reading position and highlights, in the SDK's DataStore. Not Room:
+ * `buildDatabase` exposes no migration hooks, and this data is small and
+ * always read whole.
  */
 class ReaderStore(private val dataStore: DataStore<Preferences>) {
 
@@ -46,16 +42,9 @@ class ReaderStore(private val dataStore: DataStore<Preferences>) {
     }
 
     /**
-     * Tap-to-highlight, as a three-step cycle: nothing, whole verse, nothing.
-     *
-     * A verse carrying a word-level mark is PROMOTED to a whole-verse mark
-     * rather than cleared. The earlier version wiped it, which meant one
-     * careless tap during reading destroyed a selection someone had dragged out
-     * word by word, with no way back. Reading and marking share a gesture here;
-     * that gesture must never be the one that loses work.
-     *
-     * Returns whatever it removed, so the caller can offer an undo. A promotion
-     * returns nothing, because nothing was lost.
+     * Tap-to-highlight: nothing, whole verse, nothing. A word-level mark is
+     * widened rather than cleared, since reading and marking share a gesture.
+     * Returns what it removed, for undo.
      */
     suspend fun toggleVerse(
         translation: Translation,
@@ -72,10 +61,7 @@ class ReaderStore(private val dataStore: DataStore<Preferences>) {
         return removed
     }
 
-    /**
-     * Commits a word-level drag selection, replacing whatever those verses had.
-     * Returns the marks it displaced so the caller can offer an undo.
-     */
+    /** Commits a drag selection, returning the marks it displaced. */
     suspend fun setWordRanges(
         translation: Translation,
         bookId: Int,
@@ -109,13 +95,7 @@ class ReaderStore(private val dataStore: DataStore<Preferences>) {
         editHighlights { it - highlight }
     }
 
-    /**
-     * Puts back what an undo asks for, at the end of the list.
-     *
-     * Order is insertion order and the highlights screen reads it newest-first,
-     * so a restored mark reappears at the top rather than wherever it used to
-     * sit. That is the honest answer: it was just acted on.
-     */
+    /** Restores marks at the end of the list, so undo puts them back on top. */
     suspend fun restore(highlights: List<Highlight>) {
         if (highlights.isEmpty()) return
         editHighlights { current -> current + highlights.filterNot { it in current } }
@@ -128,10 +108,7 @@ class ReaderStore(private val dataStore: DataStore<Preferences>) {
         }
     }
 
-    /**
-     * A corrupt or unreadable blob loses highlights rather than bricking the
-     * reader. Losing marks is bad; refusing to open the Bible is worse.
-     */
+    /** A corrupt blob loses marks rather than refusing to open the Bible. */
     private fun decodeHighlights(raw: String): List<Highlight> =
         runCatching { json.decodeFromString<List<Highlight>>(raw) }.getOrDefault(emptyList())
 
@@ -148,12 +125,8 @@ class ReaderStore(private val dataStore: DataStore<Preferences>) {
 data class ToggleResult(val highlights: List<Highlight>, val removed: List<Highlight>)
 
 /**
- * The tap-to-highlight decision, as a pure function so it can be tested
- * without a DataStore.
- *
- * The rule that matters: a verse carrying partial marks is widened, never
- * cleared. Only an existing whole-verse mark is removed by a tap, and that
- * removal is reported so it can be undone.
+ * The tap decision, pure so it can be tested without a DataStore.
+ * Partial marks widen; only a whole-verse mark is removed, and reported.
  */
 fun toggleVerseIn(
     current: List<Highlight>,

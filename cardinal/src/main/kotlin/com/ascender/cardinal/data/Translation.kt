@@ -1,17 +1,12 @@
 package com.ascender.cardinal.data
 
 /**
- * The three translations this tool ships.
+ * The three translations this tool ships. All carry no copyright on the text,
+ * which is what makes them safe to bundle in an open-source repo that Light
+ * builds from a public commit.
  *
- * All three carry no copyright on the text itself, which is what makes them
- * safe to bundle in an open-source tool that Light builds and signs from a
- * public commit. Nothing licensed is ever added here: a licensed translation
- * would need a network fetch and a promise never to persist the text, and
- * this tool makes no network calls at all.
- *
- * [attribution] is shown on the translation screen and in the README. The iOS
- * app returns no copyright notice for these three, because none is legally
- * required; the BSB line is a courtesy that Berean asks for.
+ * Never add a licensed translation: it would need a network fetch and a
+ * promise never to persist the text, and this tool has neither.
  */
 enum class Translation(
     val code: String,

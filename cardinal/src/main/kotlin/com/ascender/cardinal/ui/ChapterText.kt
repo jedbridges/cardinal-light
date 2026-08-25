@@ -43,7 +43,7 @@ import com.thelightphone.sdk.ui.gridUnitsAsDp
 import com.thelightphone.sdk.ui.lightClickable
 import kotlinx.coroutines.launch
 
-/** A word and the character range it occupies inside its rendered line. */
+/** A word and its character range within the rendered line. */
 private data class WordSpan(val index: Int, val start: Int, val end: Int)
 
 private fun splitWords(text: String): List<WordSpan> {
@@ -61,12 +61,11 @@ private fun splitWords(text: String): List<WordSpan> {
 }
 
 /**
- * Frame for one word, in the coordinate space of its own Text.
+ * Frame for one word, in its own Text's coordinate space.
  *
- * A word that wraps produces boxes on two lines, and their union would be a
- * rectangle spanning the full column width, swallowing every word between. So
- * the fragments are measured per line and the larger one wins: hit-testing
- * stays honest and the selection does not jump.
+ * A wrapped word occupies boxes on two lines. Their union would span the full
+ * column width and swallow every word between, so measure per line and keep
+ * the larger fragment.
  */
 private fun wordFrame(layout: TextLayoutResult, start: Int, end: Int): Rect? {
     if (start >= end) return null
@@ -84,13 +83,7 @@ private fun wordFrame(layout: TextLayoutResult, start: Int, end: Int): Rect? {
     return byLine.values.maxByOrNull { it.width }
 }
 
-/**
- * Light's typography tokens are authored in design pixels against a 600 px
- * baseline and scaled at render time. `LightText` does that internally, but it
- * only takes a `String`, and scripture needs an `AnnotatedString` so verse
- * numbers and highlights can live inside the same flowing paragraph. This
- * repeats the scaling that `LightText` would have done.
- */
+/** Repeats LightText's internal scaling, which is unavailable to AnnotatedString. */
 @Composable
 private fun TextUnit.scaled(): TextUnit =
     if (this == TextUnit.Unspecified) this else value.designVerticalPxToSp()
@@ -106,13 +99,10 @@ fun scriptureStyle(): TextStyle {
 }
 
 /**
- * One chapter, scrollable, with tap-to-highlight and long-press word selection.
+ * One chapter, with tap-to-highlight and long-press word selection.
  *
- * Deliberately not lazy. `LightLazyScrollView` needs a uniform item height to
- * size its scrollbar and verses vary from two words to a paragraph, and word
- * frames registered by an off-screen verse are exactly what makes a selection
- * survive a drag past the bottom edge. A chapter is a bounded amount of text;
- * the worst case in the whole Bible is Psalm 119 at 176 verses.
+ * Not lazy: verses vary too much for a uniform item height, and off-screen
+ * verses must stay composed so a drag can run past the edge.
  */
 @Composable
 fun ChapterText(
@@ -129,10 +119,7 @@ fun ChapterText(
     val scope = rememberCoroutineScope()
     val haptics = LocalHapticFeedback.current
 
-    // Bumped whenever the selection changes, to force the verse rows to
-    // recompose. The model itself is deliberately not observable: it is written
-    // on every drag sample, and making it snapshot state would recompose the
-    // whole chapter per frame.
+    // Forces verse rows to recompose; the model is written per drag sample.
     var revision by remember { mutableIntStateOf(0) }
     var rootOrigin by remember { mutableStateOf(Offset.Zero) }
 
@@ -161,9 +148,7 @@ fun ChapterText(
                                 publish()
                             }
                         }
-                        // Edge auto-scroll: a chapter is taller than the screen,
-                        // so a selection that cannot run past the bottom edge is
-                        // not a selection you can actually use.
+                        // Edge auto-scroll, so a selection can run past the edge.
                         val height = size.height
                         val edge = height * 0.12f
                         val dy = when {
@@ -219,14 +204,9 @@ private fun SelectableVerse(
 
     val colors = LightThemeTokens.colors
     val annotated = remember(text, revision, highlights) {
-        // Styling per word would break the underline at every space, which
-        // reads as a dotted line rather than a marked passage. So the marks are
-        // resolved to character ranges over the whole verse first, gaps
-        // included, and the string is emitted in runs of constant style.
-        //
-        // The live drag inverts, which is unmissable and correctly reads as
-        // transient. A committed highlight underlines: on a monochrome panel an
-        // inverted block that never goes away fights the surrounding text.
+        // Character ranges over the whole verse, gaps included: styling per
+        // word would break the underline at every space. Drag inverts,
+        // committed underlines; the theme has no accent to use instead.
         val selected = selectionRange(spans, model, verse.verse)
         val marked = highlightRanges(text, spans, highlights)
         val inverted = SpanStyle(background = colors.content, color = colors.background)
@@ -260,19 +240,13 @@ private fun SelectableVerse(
             .fillMaxWidth()
             .lightClickable(onClickLabel = "Highlight verse ${verse.verse}", onClick = onTap)
             .padding(vertical = VERSE_VERTICAL_PADDING_UNITS.gridUnitsAsDp())
-            // Publishing the layout is a map write. Turning it into word frames
-            // is deferred to VerseLayouts.wordAt, which only ever does it for
-            // the one verse under a finger.
+
             .onGloballyPositioned { layouts.put(verse.verse) { coords = it } },
         onTextLayout = { layouts.put(verse.verse) { layout = it } },
     )
 }
 
-/**
- * Character ranges covered by committed highlights. A whole-verse mark spans
- * the verse; a word-range mark spans from the first word's first character to
- * the last word's last, so the spaces inside the run are underlined too.
- */
+/** Character ranges of committed marks, spaces inside a run included. */
 private fun highlightRanges(
     text: String,
     spans: List<WordSpan>,
@@ -284,11 +258,7 @@ private fun highlightRanges(
     first.start until last.end
 }
 
-/**
- * The character range of the live drag inside this verse. A selection is a
- * range over ordered word ids, so whatever it touches in one verse is
- * contiguous and the endpoints are enough.
- */
+/** The live drag's range in this verse. Selections are contiguous, so endpoints suffice. */
 private fun selectionRange(
     spans: List<WordSpan>,
     model: WordSelectionModel,
@@ -300,17 +270,9 @@ private fun selectionRange(
 }
 
 /**
- * Where each verse ended up, and what its text layout is.
- *
- * The first version of this registered a frame for every word of every verse
- * from `onGloballyPositioned`, which fires on each scroll frame. On Psalm 119
- * that is 176 verses times roughly sixteen words, recomputed continuously, and
- * it showed up as 100% janky frames and a 1.6s first paint.
- *
- * Verses now publish only their coordinates and layout, which is a map write.
- * Word frames are computed in [wordAt], for the single verse under the finger,
- * and only while a drag is actually happening. Reading costs nothing;
- * selecting costs one verse.
+ * Where each verse sits and how its text is laid out. Word frames are derived
+ * in [wordAt] for the one verse under the finger; doing it eagerly cost 176
+ * verses x ~16 words per scroll frame on Psalm 119.
  */
 private class VerseLayouts {
     class Entry {
@@ -327,11 +289,9 @@ private class VerseLayouts {
     fun clear() = entries.clear()
 
     /**
-     * The word under [point] in root coordinates, registering that verse's
-     * frames into [model] so the selection maths can work with them.
-     *
-     * Frames are re-registered on every call rather than cached, because
-     * auto-scroll moves the text under the finger mid-drag.
+     * The word under [point], registering that verse's frames into [model].
+     * Recomputed per call rather than cached: auto-scroll moves the text
+     * under the finger mid-drag.
      */
     fun wordAt(point: Offset, model: WordSelectionModel, verses: List<VerseRecord>): WordId? {
         val verse = verseAt(point) ?: nearestVerse(point) ?: return null
@@ -376,14 +336,5 @@ private class VerseLayouts {
 }
 
 private const val AUTO_SCROLL_STEP = 24f
-/**
- * Air between verses.
- *
- * Was a quarter unit, which is 3.8dp and left a one-line verse as a ~38dp
- * target. Half a unit both reads better as prose and grows the target. It
- * still does not reach 44dp for the shortest verses, and that is a deliberate
- * limit: forcing every verse to a button-sized target would space scripture
- * like a list and cost the thing the app exists for. A stray tap is survivable
- * now that it widens rather than destroys, and is undoable either way.
- */
+/** Air between verses. Leaves a short verse just under a 44dp target, on purpose. */
 private const val VERSE_VERTICAL_PADDING_UNITS = Space.tight

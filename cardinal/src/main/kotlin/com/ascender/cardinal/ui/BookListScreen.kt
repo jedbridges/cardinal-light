@@ -14,11 +14,8 @@ import com.thelightphone.sdk.ui.LightTextVariant
 import com.thelightphone.sdk.ui.gridUnitsAsDp
 
 /**
- * All 66 books in canonical order, with a testament heading between the two.
- *
- * A flat list beats the grid the iOS app uses: the LP3 is 27 grid units wide,
- * and "1 Thessalonians" does not fit in a third of that without truncating to
- * something you have to decode.
+ * All 66 books in canonical order. A flat list, not the grid the iOS app
+ * uses: "1 Thessalonians" will not fit a third of 27 grid units.
  */
 class BookListScreen(sealedActivity: SealedLightActivity) :
     SimpleLightScreen<Unit>(sealedActivity) {
@@ -26,13 +23,9 @@ class BookListScreen(sealedActivity: SealedLightActivity) :
     @Composable
     override fun Content() {
         CardinalScreen(title = "Books", onBack = { goBack() }) {
-            // Not LightLazyScrollView. That one sizes its scrollbar from a
-            // uniform item height you promise it, and the promise here was
-            // 2.6 grid units against an actual row pitch of 2.88 — a tenth
-            // out, which is why the thumb read as too large. Any change to row
-            // padding or text variant would desynchronise it again. The plain
-            // scroll view measures real content and cannot drift; sixty-six
-            // short rows cost nothing to compose.
+            // Not LightLazyScrollView: its scrollbar trusts a uniform item
+            // height, which drifts whenever row padding or variant changes.
+            // This one measures real content. Sixty-six rows cost nothing.
             LightScrollView(
                 modifier = Modifier
                     .fillMaxSize()
@@ -46,11 +39,7 @@ class BookListScreen(sealedActivity: SealedLightActivity) :
         }
     }
 
-    /**
-     * No chapter count under the name. It doubled the row height, which put
-     * only seven of the sixty-six books on screen, and the next screen shows
-     * the chapters anyway.
-     */
+    /** No chapter count: it halved the books on screen, and the next screen shows them. */
     @Composable
     private fun BookRow(book: BibleBook) {
         CardinalRow(

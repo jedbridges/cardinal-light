@@ -1,14 +1,9 @@
 package com.ascender.cardinal.data
 
 /**
- * The 66 books, ported from the iOS app's BibleBook.swift.
- *
- * Only the fields a reader needs survive the port: the iOS type also carries an
- * author, a genre, a timeline position and a one-line description, all of which
- * belong to features this tool deliberately does not have.
- *
- * [slug] is the asset filename stem, so BibleBook.assetPath("WEB") resolves to
- * the file that ships in assets/bible/.
+ * The 66 books, ported from the iOS BibleBook.swift. Only the fields a reader
+ * needs; the iOS type also carries author, genre and timeline data for
+ * features this tool does not have.
  */
 enum class Testament { OLD, NEW }
 
@@ -19,7 +14,7 @@ data class BibleBook(
     val testament: Testament,
     val chapterCount: Int,
 ) {
-    /** Book name with spaces replaced by underscores, e.g. "Song_of_Solomon". */
+    /** Asset filename stem, e.g. "Song_of_Solomon". */
     val slug: String get() = name.replace(" ", "_")
 
     fun assetPath(translation: String): String = "bible/${translation}_${id}_$slug.json"

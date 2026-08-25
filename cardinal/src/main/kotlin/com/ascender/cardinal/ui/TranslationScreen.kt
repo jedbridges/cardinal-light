@@ -38,12 +38,8 @@ class TranslationViewModel(private val store: ReaderStore) : LightViewModel<Unit
 }
 
 /**
- * Pick a translation, and read the attribution while you are here.
- *
- * All three are free of copyright on the text, which is the only reason they
- * can ship inside an open-source tool that Light builds from a public commit.
- * The attribution lines are shown rather than buried because that is the whole
- * argument for why this app is allowed to exist.
+ * Pick a translation. Attribution is shown rather than buried: the text being
+ * free of copyright is the reason this tool can ship at all.
  */
 private const val SELECT_ICON_UNITS = 1.6f
 
@@ -66,10 +62,7 @@ class TranslationScreen(sealedActivity: SealedLightActivity) :
                         horizontal = CONTENT_PADDING_UNITS.gridUnitsAsDp(),
                     ),
                 ) {
-                    // The selected translation used to be marked with a bare
-                    // "·" appended to its name, which reads as a typo rather
-                    // than a state and says nothing to a screen reader. The SDK
-                    // ships SELECT_ON / SELECT_OFF for exactly this.
+
                     Translation.entries.forEach { translation ->
                         val selected = translation == state.currentTranslation
                         Row(

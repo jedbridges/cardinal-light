@@ -7,7 +7,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-/** One verse as it sits in the asset files, which are shared with the iOS app. */
+/** One verse, in the asset format shared with the iOS app. */
 @Serializable
 data class VerseRecord(
     val bookId: Int,
@@ -17,18 +17,11 @@ data class VerseRecord(
 )
 
 /**
- * Reads scripture out of the bundled per-book JSON assets.
+ * Reads scripture from the bundled per-book JSON assets.
  *
- * There is no database here on purpose. The SDK blocks `android.content.Context`,
- * so raw SQLite is unreachable, and the only way to build a Room database is
- * `buildDatabase`, which exposes no hooks for a prepackaged asset and no
- * migration callbacks at all. Reading a book file directly avoids that whole
- * problem: the largest of the 198 files is 331 KB, decoding one takes a few
- * milliseconds off the main thread, and an LRU of a couple of books covers the
- * way people actually read, which is forwards.
- *
- * [readAsset] is injected rather than taken from a context so this class can be
- * exercised by a plain JVM test.
+ * No database: the SDK blocks `android.content.Context` and `buildDatabase`
+ * offers no prepackaged-asset hook. Largest of the 198 files is 331 KB.
+ * [readAsset] is injected so a JVM test can drive this.
  */
 class BibleRepository(
     private val readAsset: (String) -> ByteArray,
@@ -50,9 +43,8 @@ class BibleRepository(
 
         mutex.withLock { cache[key] }?.let { return it }
 
-        // A missing or malformed book file yields an empty chapter, which the
-        // reader renders as "Nothing here." Crashing the only Bible on a phone
-        // with no network is the worse failure.
+        // A bad book file yields an empty chapter rather than crashing the
+        // only Bible on a phone with no network.
         val loaded = withContext(Dispatchers.IO) {
             runCatching {
                 val bytes = readAsset(book.assetPath(translation.code))
@@ -75,10 +67,7 @@ class BibleRepository(
     ): VerseRecord? = book(translation, bookId)
         .firstOrNull { it.chapter == chapter && it.verse == verse }
 
-    /**
-     * The chapter after this one, rolling into the next book, or null at the end
-     * of Revelation. [previousChapter] is the mirror image.
-     */
+    /** The next chapter, rolling into the next book; null past Revelation 22. */
     fun nextChapter(bookId: Int, chapter: Int): Reference? {
         val book = BibleBook.byId(bookId) ?: return null
         if (chapter < book.chapterCount) return Reference(bookId, chapter + 1)

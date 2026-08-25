@@ -45,7 +45,7 @@ data class ReaderUiState(
     val hasPrevious: Boolean get() = previous != null
     val hasNext: Boolean get() = next != null
 
-    /** Naming the next chapter is the difference between a button and an invitation. */
+    /** Named, not "Next": a chapter name invites where a direction does not. */
     val nextLabel: String get() = next?.display ?: "Next"
 }
 
@@ -62,8 +62,7 @@ class ReaderViewModel(
 
     init {
         viewModelScope.launch {
-            // Translation comes from stored state; the reference comes from
-            // whoever opened this screen, which may not be where we left off.
+
             open(store.state.first().currentTranslation, initial)
         }
         viewModelScope.launch {
@@ -100,11 +99,7 @@ class ReaderViewModel(
         store.setPosition(reference.bookId, reference.chapter)
     }
 
-    /**
-     * Paging happens in place rather than by pushing another screen, so reading
-     * Genesis end to end leaves one entry on the back stack instead of fifty,
-     * and the book stays in the repository's cache the whole way through.
-     */
+    /** Pages in place, so reading a book end to end leaves one back-stack entry. */
     fun goToNext() = move { repository.nextChapter(it.bookId, it.chapter) }
 
     fun goToPrevious() = move { repository.previousChapter(it.bookId, it.chapter) }
@@ -143,14 +138,9 @@ class ReaderViewModel(
 
 }
 
-
 /**
- * "Replaced John 1:1" beats "Highlight replaced": the reader is looking at a
- * wall of verses and needs to know which one the message is about.
- *
- * Total on purpose. The first version indexed into the verse list without
- * checking it was populated, and a drag that replaces nothing — which is most
- * drags — took the whole app down with it.
+ * Names the verse, because the reader is looking at a wall of them.
+ * Total on purpose: most drags replace nothing.
  */
 fun replacedMessage(reference: Reference, replaced: List<Highlight>): String {
     val verses = replaced.map { it.verse }.distinct().sorted()
@@ -200,9 +190,6 @@ class ReaderScreen(
         ) {
             when {
                 state.loading -> Placeholder("Opening ${state.reference.display}")
-                // Only reachable if a bundled asset is missing or unreadable,
-                // which is a packaging fault rather than anything the reader
-                // did. Say so plainly instead of "Nothing here."
                 state.verses.isEmpty() ->
                     Placeholder("${state.reference.display} could not be opened.")
                 else -> ChapterText(
@@ -218,19 +205,10 @@ class ReaderScreen(
     }
 
     /**
-     * Paging lives at the end of the text, not in a persistent bar. The screen
-     * is 31 grid units tall and a bar would spend four of them telling you
-     * about a chapter you have not finished yet.
-     *
-     * Two things here were wrong and are worth naming. The rows used to render
-     * at Copy, which is 30 design px against scripture's 25 — the controls were
-     * a fifth larger than the words they were interrupting, in an app whose
-     * first principle is that the text is primary. And the labels were
-     * asymmetric, a generic "Previous" stacked above a named "John 2", which
-     * scans top-to-bottom as though John 2 were the chapter behind you.
-     *
-     * Both chapters are named now, both sit below scripture in the type scale,
-     * and a rule separates the navigation from the last verse.
+     * Paging sits at the end of the text, not in a persistent bar: the screen
+     * is 31 grid units tall and a bar would spend four on a chapter you have
+     * not finished. Both chapters are named, both sit below scripture in the
+     * type scale, and a rule separates them from the last verse.
      */
     @Composable
     private fun ChapterFooter(state: ReaderUiState) {

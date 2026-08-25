@@ -23,16 +23,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-/** A removal that can still be taken back, and the words to describe it. */
+/** A removal that can still be taken back. */
 data class PendingUndo(val message: String, val highlights: List<Highlight>)
 
 /**
- * The five seconds after a mark disappears.
- *
- * The iOS app gives the same window, and it exists for the same reason: on a
- * device you hold one-handed, the gesture that removes something is a
- * neighbour of the gesture that scrolls. Forgiveness has to be built in rather
- * than left to the user being careful.
+ * The five seconds after a mark disappears, matching the iOS window. On a
+ * one-handed device the remove gesture neighbours the scroll gesture.
  */
 class UndoController(
     private val scope: CoroutineScope,
@@ -71,13 +67,9 @@ class UndoController(
 }
 
 /**
- * The undo row, pinned to the bottom of a screen.
- *
- * It paints the background explicitly because it overlays scripture: without
- * that the verses beneath would show through the gap between glyphs. "Undo" is
- * underlined rather than boxed, since the theme has no accent colour to make a
- * button out of and a full-width bar would be louder than the thing it is
- * apologising for.
+ * The undo row. Paints its own background because it overlays scripture, and
+ * underlines rather than boxes "Undo": the theme has no accent to build a
+ * button from.
  */
 @Composable
 fun UndoRow(pending: PendingUndo, onUndo: () -> Unit, modifier: Modifier = Modifier) {

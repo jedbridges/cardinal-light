@@ -20,13 +20,7 @@ import com.thelightphone.sdk.ui.LightTextVariant
 import com.thelightphone.sdk.ui.gridUnitsAsDp
 import com.thelightphone.sdk.ui.lightClickable
 
-/**
- * Chapter numbers for one book.
- *
- * Numbers are short, so unlike the book list this one is a grid. Five columns
- * puts Psalm 150 within two screens of scrolling and keeps every target
- * comfortably above a fingertip.
- */
+/** Chapter numbers for one book. Short labels, so a grid rather than a list. */
 class ChapterListScreen(
     sealedActivity: SealedLightActivity,
     private val bookId: Int,
@@ -71,11 +65,7 @@ class ChapterListScreen(
     private companion object {
         const val COLUMNS = 5
 
-        /**
-         * 3 grid units is 45.7dp on the LP3. The previous 2.5 came out at
-         * 38.1dp, under the 44dp minimum touch target, on a grid where Psalms
-         * puts 150 of them under a moving thumb.
-         */
+        /** 45.7dp on the LP3, above the 44dp minimum touch target. */
         const val CELL_HEIGHT_UNITS = 3f
     }
 }
