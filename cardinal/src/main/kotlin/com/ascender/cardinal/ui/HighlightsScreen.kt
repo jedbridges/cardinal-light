@@ -118,9 +118,13 @@ class HighlightsScreen(sealedActivity: SealedLightActivity) :
             },
         ) {
             if (highlights.isEmpty()) {
+                // Names both gestures. Press-and-drag is the better one and had
+                // nothing anywhere in the interface pointing at it, and this
+                // screen is the only place someone looks for what marks are.
                 LightText(
-                    text = "Tap a verse while reading to highlight it.",
-                    variant = LightTextVariant.Copy,
+                    text = "Tap a verse while reading to highlight it.\n" +
+                        "Press and hold to select words.",
+                    variant = LightTextVariant.Detail,
                     lighten = true,
                     modifier = Modifier.padding(
                         horizontal = CONTENT_PADDING_UNITS.gridUnitsAsDp(),
