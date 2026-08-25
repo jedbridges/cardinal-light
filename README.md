@@ -116,6 +116,43 @@ manifests inside `:sdk:client` and `:sdk:ui` (the QR scanner, media3, DataStore,
 Ktor) and merge in whether a tool uses them or not. Cardinal instantiates no
 HTTP client and opens no camera.
 
+## Not yet verified on hardware
+
+Everything here was built and tested against the LightOS emulator. No physical
+Light Phone III has run it. Three things are therefore assumptions rather than
+facts, and all three are cheap to check on a real device:
+
+**Screen density.** The AVD is configured at 420dpi, which is what 1080 x 1240
+across a 3.92" diagonal works out to (1644px / 3.92in = 419.5). The SDK's own
+Compose previews are authored at 360 x 413dp, implying 480dpi instead. The two
+disagree, and it matters: `LightText` scales type against `screenHeightDp / 600`,
+so the wrong density means every size in the app is off. Run `adb shell wm
+density` on a real LP3 and reconcile. The grid maths in `Space` is proportional
+and survives either answer; the type is what moves.
+
+**Highlight legibility.** A committed highlight is an underline and a live drag
+inverts. Both are unambiguous on an emulator's backlit LCD. Neither has been
+seen on the actual monochrome AMOLED behind matte glass, which is a different
+surface in sunlight.
+
+**Hardware keys.** Volume up and down are the only physical inputs confirmed to
+reach a tool's ViewModel, and they would make a natural page-turn for a reader.
+Which other keys exist is undocumented. Run the SDK's `UiDemoKeyEventsScreen` on
+a device to enumerate them; note that returning `true` from `onKeyDown` consumes
+the event and suppresses the volume change.
+
+## Known gaps
+
+- **No launcher icon.** There is no icon field in `lighttool.toml`, no format or
+  dimension spec anywhere in the SDK, and tools may not supply their own
+  manifest. Android lint duly warns `MissingApplicationIcon`. Open question for
+  Light.
+- **Word selection is undiscoverable.** Long-press and drag selects words, and
+  nothing in the interface says so.
+- **No search.** Deliberate for v1, and the most-missed thing on a device with
+  no browser to fall back on.
+- **No notes.** Deferred; typing on the LP3 keyboard is workable but slow.
+
 ## Licence
 
 MIT, matching the Light SDK this repo is forked from. The Bible text is public
