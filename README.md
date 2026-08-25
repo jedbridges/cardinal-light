@@ -118,6 +118,13 @@ Composing the whole chapter also means word frames stay registered for verses
 that are off-screen, which is exactly what lets a selection drag past the
 bottom edge. A chapter is bounded; the worst case in the Bible is Psalm 119.
 
+**A word range belongs to one translation.** Only 194 of 31,095 verses are
+word-for-word identical between KJV and WEB, and in 18,894 of the rest the WEB
+rendering is shorter — so a stored word index shown against another
+translation lands on the wrong word or off the end. Whole-verse marks show
+everywhere, because they are about the verse. Word ranges show only where they
+were made, and the highlights list names that translation.
+
 **Highlights are underlines, not blocks.** The LightOS theme is three colours:
 background, content, and a secondary grey. There is no accent, so a highlight
 cannot be a yellow wash. A live drag inverts the words, which is unmissable and

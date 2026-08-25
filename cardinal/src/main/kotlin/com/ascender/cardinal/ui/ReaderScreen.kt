@@ -71,11 +71,13 @@ class ReaderViewModel(
         }
         viewModelScope.launch {
             store.state.collect { stored ->
+                val reference = _state.value.reference
                 _state.value = _state.value.copy(
-                    highlights = stored.highlights.filter {
-                        it.book == _state.value.reference.bookId &&
-                            it.chapter == _state.value.reference.chapter
-                    },
+                    highlights = stored.highlightsIn(
+                        reference.bookId,
+                        reference.chapter,
+                        _state.value.translation,
+                    ),
                 )
             }
         }
@@ -93,9 +95,7 @@ class ReaderViewModel(
             reference = reference,
             translation = translation,
             verses = verses,
-            highlights = stored.highlights.filter {
-                it.book == reference.bookId && it.chapter == reference.chapter
-            },
+            highlights = stored.highlightsIn(reference.bookId, reference.chapter, translation),
             loading = false,
             previous = repository.previousChapter(reference.bookId, reference.chapter),
             next = repository.nextChapter(reference.bookId, reference.chapter),

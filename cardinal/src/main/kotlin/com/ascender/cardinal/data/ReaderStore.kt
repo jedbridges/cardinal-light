@@ -73,7 +73,8 @@ class ReaderStore(private val dataStore: DataStore<Preferences>) {
         var replaced = emptyList<Highlight>()
         editHighlights { current ->
             replaced = current.filter {
-                it.book == bookId && it.chapter == chapter && it.verse in touched
+                it.book == bookId && it.chapter == chapter && it.verse in touched &&
+                    (it.isWholeVerse || it.translation == translation.code)
             }
             current - replaced.toSet() +
                 ranges.map {
@@ -135,16 +136,21 @@ fun toggleVerseIn(
     chapter: Int,
     verse: Int,
 ): ToggleResult {
-    val existing = current.filter { it.isOn(bookId, chapter, verse) }
+    // Only marks this translation is showing are in play. A word range made in
+    // another translation is invisible here, so a tap must not silently take it.
+    val visible = current.filter {
+        it.isOn(bookId, chapter, verse) &&
+            (it.isWholeVerse || it.translation == translation.code)
+    }
     val wholeVerse = Highlight(bookId, chapter, verse, translation = translation.code)
     return when {
-        existing.isEmpty() ->
+        visible.isEmpty() ->
             ToggleResult(current + wholeVerse, emptyList())
 
-        existing.any { !it.isWholeVerse } ->
-            ToggleResult(current - existing.toSet() + wholeVerse, emptyList())
+        visible.any { !it.isWholeVerse } ->
+            ToggleResult(current - visible.toSet() + wholeVerse, emptyList())
 
         else ->
-            ToggleResult(current - existing.toSet(), existing)
+            ToggleResult(current - visible.toSet(), visible)
     }
 }

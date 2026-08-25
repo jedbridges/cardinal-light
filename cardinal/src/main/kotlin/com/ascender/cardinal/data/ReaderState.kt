@@ -41,9 +41,19 @@ data class ReaderState(
     val currentTranslation: Translation get() = Translation.fromCode(translation)
     val lastReference: Reference get() = Reference(lastBook, lastChapter)
 
-    fun highlightsOn(book: Int, chapter: Int, verse: Int): List<Highlight> =
-        highlights.filter { it.isOn(book, chapter, verse) }
-
-    fun isHighlighted(book: Int, chapter: Int, verse: Int): Boolean =
-        highlights.any { it.isOn(book, chapter, verse) }
+    /**
+     * Marks to draw on a chapter in a given translation.
+     *
+     * A whole-verse mark is about the verse, so it shows in every translation.
+     * A word range is about particular words, and the translations do not share
+     * them: 99.4% of verses differ in wording between KJV and WEB, and in most
+     * of those the other rendering is shorter, so a stored index would land on
+     * the wrong word or off the end. Word ranges therefore show only in the
+     * translation they were made in.
+     */
+    fun highlightsIn(book: Int, chapter: Int, translation: Translation): List<Highlight> =
+        highlights.filter {
+            it.book == book && it.chapter == chapter &&
+                (it.isWholeVerse || it.translation == translation.code)
+        }
 }

@@ -33,7 +33,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class SearchViewModel(
@@ -59,13 +62,27 @@ class SearchViewModel(
     private val _editing = MutableStateFlow(false)
     val editing: StateFlow<Boolean> = _editing.asStateFlow()
 
-    private val _translation = MutableStateFlow(Translation.default)
-    val translation: StateFlow<Translation> = _translation.asStateFlow()
+    /**
+     * Observed, not read once. The screen can outlive a translation change,
+     * and results labelled with the wrong translation are worse than no
+     * results: every word index and every verse belongs to one rendering.
+     */
+    val translation: StateFlow<Translation> = store.state
+        .map { it.currentTranslation }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, Translation.default)
 
     private var running: Job? = null
 
     init {
-        viewModelScope.launch { _translation.value = store.state.first().currentTranslation }
+        // Results belong to the translation they were found in. If that
+        // changes underneath, drop them rather than mislabel them.
+        viewModelScope.launch {
+            translation.drop(1).collect {
+                running?.cancel()
+                _searching.value = false
+                _results.value = null
+            }
+        }
     }
 
     fun edit() { _editing.value = true }
@@ -80,7 +97,7 @@ class SearchViewModel(
         running?.cancel()
         running = viewModelScope.launch {
             _searching.value = true
-            _results.value = search.search(_translation.value, _query.value)
+            _results.value = search.search(translation.value, _query.value)
             _searching.value = false
         }
     }

@@ -54,18 +54,20 @@ class HighlightsViewModel(
     }
 
     /**
-     * Only the reference is stored, so previews resolve from the assets. That
-     * also means a mark reads correctly after switching translation.
+     * Only the reference is stored, so previews resolve from the assets — in
+     * the translation the mark was made in, not whichever is current. A word
+     * range indexes into particular wording, and showing it against a
+     * different rendering would quote words nobody marked.
      */
     private val _previews = MutableStateFlow<Map<String, String>>(emptyMap())
     val previews: StateFlow<Map<String, String>> = _previews
 
-    fun loadPreview(highlight: Highlight, translation: Translation) {
+    fun loadPreview(highlight: Highlight) {
         val key = highlight.key
         if (_previews.value.containsKey(key)) return
         viewModelScope.launch {
             val record = repository.verse(
-                translation,
+                Translation.fromCode(highlight.translation),
                 highlight.book,
                 highlight.chapter,
                 highlight.verse,
@@ -98,8 +100,8 @@ class HighlightsScreen(sealedActivity: SealedLightActivity) :
         val pendingUndo by viewModel.undo.pending.collectAsState()
         val highlights = state.highlights.asReversed()
 
-        LaunchedEffect(highlights, state.translation) {
-            highlights.forEach { viewModel.loadPreview(it, state.currentTranslation) }
+        LaunchedEffect(highlights) {
+            highlights.forEach { viewModel.loadPreview(it) }
         }
 
         CardinalScreen(
@@ -144,7 +146,7 @@ class HighlightsScreen(sealedActivity: SealedLightActivity) :
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             CardinalRow(
-                                text = highlight.reference,
+                                text = highlight.reference + madeIn(highlight, state.currentTranslation),
                                 detail = previews[highlight.key]?.let { preview(it, highlight) },
                                 variant = LightTextVariant.Detail,
                                 modifier = Modifier.weight(1f),
@@ -181,6 +183,18 @@ class HighlightsScreen(sealedActivity: SealedLightActivity) :
             }
         }
     }
+
+    /**
+     * Word ranges only make sense in their own translation, so one made
+     * elsewhere says so rather than looking like it applies to what you are
+     * reading now.
+     */
+    private fun madeIn(highlight: Highlight, current: Translation): String =
+        if (highlight.isWholeVerse || highlight.translation == current.code) {
+            ""
+        } else {
+            "  ${highlight.translation}"
+        }
 
     /** The marked words, or the opening line for a whole-verse mark. */
     private fun preview(text: String, highlight: Highlight): String {
