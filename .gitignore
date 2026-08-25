@@ -50,3 +50,5 @@ bin/
 __pycache__/
 *.py[cod]
 .pytest_cache/
+### Local design tooling (not part of the tool) ###
+.github/skills/
