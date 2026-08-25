@@ -41,11 +41,15 @@ class BookListScreen(sealedActivity: SealedLightActivity) :
         }
     }
 
+    /**
+     * No chapter count under the name. It doubled the row height, which put
+     * only seven of the sixty-six books on screen, and the next screen shows
+     * the chapters anyway.
+     */
     @Composable
     private fun BookRow(book: BibleBook) {
         CardinalRow(
             text = book.name,
-            detail = if (book.chapterCount == 1) "1 chapter" else "${book.chapterCount} chapters",
             onClick = { navigateTo({ ChapterListScreen(it, book.id) }) },
         )
     }

@@ -42,10 +42,18 @@ JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradle
 ```
 
 To run it, you want an Android emulator with the LightOS emulator installed as
-a system app. That setup lives in [docs/system_app](docs/system_app), and it is
-the fiddliest part of working on this. Note that it asks you to fetch AOSP
-platform signing keys from a third-party mirror; read that step before running
-it.
+a system app. That setup lives in [docs/system_app](docs/system_app) and is the
+fiddliest part of working on this. Two notes from doing it:
+
+- The SDK docs fetch the AOSP platform signing keys from a third-party mirror.
+  You can get the same two files from Google directly, at
+  `android.googlesource.com/platform/build/+/refs/heads/main/target/product/security/`
+  (append `?format=TEXT` and base64-decode). They are byte-identical to the
+  mirror's copies, verified by sha256; the officially-sourced ones are what
+  this repo's keystore was built from.
+- The AVD is API 34, `default` (AOSP, no Google APIs), arm64-v8a, 1080 x 1240
+  at density 420. `getprop ro.build.description` must end in `test-keys`.
+  Boot with `-writable-system` every time.
 
 The Light SDK's own README, which explains the module layout and the API
 restrictions, is preserved at [docs/LIGHT_SDK_README.md](docs/LIGHT_SDK_README.md).

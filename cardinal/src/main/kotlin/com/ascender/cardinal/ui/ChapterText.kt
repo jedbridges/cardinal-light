@@ -124,6 +124,7 @@ fun ChapterText(
     footer: @Composable () -> Unit = {},
 ) {
     val model = remember(verses) { WordSelectionModel() }
+    val layouts = remember(verses) { VerseLayouts() }
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
     val haptics = LocalHapticFeedback.current
@@ -146,7 +147,7 @@ fun ChapterText(
             .pointerInput(verses) {
                 detectDragGesturesAfterLongPress(
                     onDragStart = { local ->
-                        model.wordAt(local + rootOrigin)?.let {
+                        layouts.wordAt(local + rootOrigin, model, verses)?.let {
                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                             model.begin(it)
                             publish()
@@ -154,7 +155,7 @@ fun ChapterText(
                     },
                     onDrag = { change, _ ->
                         change.consume()
-                        model.wordAt(change.position + rootOrigin)?.let {
+                        layouts.wordAt(change.position + rootOrigin, model, verses)?.let {
                             if (it != model.head) {
                                 model.extendTo(it)
                                 publish()
@@ -193,6 +194,7 @@ fun ChapterText(
                     verse = verse,
                     highlights = highlights.filter { it.verse == verse.verse },
                     model = model,
+                    layouts = layouts,
                     revision = revision,
                     onTap = { onVerseTap(verse.verse) },
                 )
@@ -207,57 +209,46 @@ private fun SelectableVerse(
     verse: VerseRecord,
     highlights: List<Highlight>,
     model: WordSelectionModel,
+    layouts: VerseLayouts,
     revision: Int,
     onTap: () -> Unit,
 ) {
     val text = verse.text
     val prefix = "${verse.verse} "
     val spans = remember(text) { splitWords(text) }
-    var coords by remember { mutableStateOf<LayoutCoordinates?>(null) }
-    var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
-
-    // Re-register whenever geometry OR scroll position changes: the frames live
-    // in root coordinates, so scrolling invalidates every one of them.
-    fun registerAll() {
-        val currentLayout = layout ?: return
-        val origin = coords?.positionInRoot() ?: return
-        spans.forEach { span ->
-            wordFrame(currentLayout, span.start + prefix.length, span.end + prefix.length)?.let {
-                model.register(
-                    WordId(verse.verse, span.index),
-                    it.translate(origin.x, origin.y),
-                    text.substring(span.start, span.end),
-                )
-            }
-        }
-    }
 
     val colors = LightThemeTokens.colors
     val annotated = remember(text, revision, highlights) {
+        // Styling per word would break the underline at every space, which
+        // reads as a dotted line rather than a marked passage. So the marks are
+        // resolved to character ranges over the whole verse first, gaps
+        // included, and the string is emitted in runs of constant style.
+        //
+        // The live drag inverts, which is unmissable and correctly reads as
+        // transient. A committed highlight underlines: on a monochrome panel an
+        // inverted block that never goes away fights the surrounding text.
+        val selected = selectionRange(spans, model, verse.verse)
+        val marked = highlightRanges(text, spans, highlights)
+        val inverted = SpanStyle(background = colors.content, color = colors.background)
+        val underlined = SpanStyle(textDecoration = TextDecoration.Underline)
+
+        fun styleAt(index: Int): SpanStyle? = when {
+            selected != null && index in selected -> inverted
+            marked.any { index in it } -> underlined
+            else -> null
+        }
+
         buildAnnotatedString {
             withStyle(SpanStyle(color = colors.contentSecondary)) { append(prefix) }
-            var cursor = 0
-            spans.forEach { span ->
-                append(text.substring(cursor, span.start))
-                val word = text.substring(span.start, span.end)
-                val id = WordId(verse.verse, span.index)
-                val style = when {
-                    // The live drag inverts, which is unmissable and correctly
-                    // reads as transient. A committed highlight underlines: on a
-                    // monochrome panel an inverted block that never goes away
-                    // fights the surrounding text for the eye.
-                    model.isSelected(id) ->
-                        SpanStyle(background = colors.content, color = colors.background)
-
-                    highlights.any { it.covers(span.index) } ->
-                        SpanStyle(textDecoration = TextDecoration.Underline)
-
-                    else -> null
-                }
-                if (style != null) withStyle(style) { append(word) } else append(word)
-                cursor = span.end
+            var start = 0
+            while (start < text.length) {
+                val style = styleAt(start)
+                var end = start + 1
+                while (end < text.length && styleAt(end) == style) end++
+                val chunk = text.substring(start, end)
+                if (style != null) withStyle(style) { append(chunk) } else append(chunk)
+                start = end
             }
-            if (cursor < text.length) append(text.substring(cursor))
         }
     }
 
@@ -269,9 +260,119 @@ private fun SelectableVerse(
             .fillMaxWidth()
             .lightClickable(onClick = onTap)
             .padding(vertical = VERSE_VERTICAL_PADDING_UNITS.gridUnitsAsDp())
-            .onGloballyPositioned { coords = it; registerAll() },
-        onTextLayout = { layout = it; registerAll() },
+            // Publishing the layout is a map write. Turning it into word frames
+            // is deferred to VerseLayouts.wordAt, which only ever does it for
+            // the one verse under a finger.
+            .onGloballyPositioned { layouts.put(verse.verse) { coords = it } },
+        onTextLayout = { layouts.put(verse.verse) { layout = it } },
     )
+}
+
+/**
+ * Character ranges covered by committed highlights. A whole-verse mark spans
+ * the verse; a word-range mark spans from the first word's first character to
+ * the last word's last, so the spaces inside the run are underlined too.
+ */
+private fun highlightRanges(
+    text: String,
+    spans: List<WordSpan>,
+    highlights: List<Highlight>,
+): List<IntRange> = highlights.mapNotNull { highlight ->
+    if (highlight.isWholeVerse) return@mapNotNull text.indices
+    val first = spans.getOrNull(highlight.startWord ?: return@mapNotNull null) ?: return@mapNotNull null
+    val last = spans.getOrNull(highlight.endWord ?: return@mapNotNull null) ?: return@mapNotNull null
+    first.start until last.end
+}
+
+/**
+ * The character range of the live drag inside this verse. A selection is a
+ * range over ordered word ids, so whatever it touches in one verse is
+ * contiguous and the endpoints are enough.
+ */
+private fun selectionRange(
+    spans: List<WordSpan>,
+    model: WordSelectionModel,
+    verse: Int,
+): IntRange? {
+    val touched = spans.filter { model.isSelected(WordId(verse, it.index)) }
+    if (touched.isEmpty()) return null
+    return touched.first().start until touched.last().end
+}
+
+/**
+ * Where each verse ended up, and what its text layout is.
+ *
+ * The first version of this registered a frame for every word of every verse
+ * from `onGloballyPositioned`, which fires on each scroll frame. On Psalm 119
+ * that is 176 verses times roughly sixteen words, recomputed continuously, and
+ * it showed up as 100% janky frames and a 1.6s first paint.
+ *
+ * Verses now publish only their coordinates and layout, which is a map write.
+ * Word frames are computed in [wordAt], for the single verse under the finger,
+ * and only while a drag is actually happening. Reading costs nothing;
+ * selecting costs one verse.
+ */
+private class VerseLayouts {
+    class Entry {
+        var coords: LayoutCoordinates? = null
+        var layout: TextLayoutResult? = null
+    }
+
+    private val entries = LinkedHashMap<Int, Entry>()
+
+    fun put(verse: Int, update: Entry.() -> Unit) {
+        entries.getOrPut(verse) { Entry() }.update()
+    }
+
+    fun clear() = entries.clear()
+
+    /**
+     * The word under [point] in root coordinates, registering that verse's
+     * frames into [model] so the selection maths can work with them.
+     *
+     * Frames are re-registered on every call rather than cached, because
+     * auto-scroll moves the text under the finger mid-drag.
+     */
+    fun wordAt(point: Offset, model: WordSelectionModel, verses: List<VerseRecord>): WordId? {
+        val verse = verseAt(point) ?: nearestVerse(point) ?: return null
+        val entry = entries[verse] ?: return null
+        val layout = entry.layout ?: return null
+        val origin = entry.coords?.positionInRoot() ?: return null
+        val text = verses.firstOrNull { it.verse == verse }?.text ?: return null
+        val prefix = "$verse ".length
+
+        splitWords(text).forEach { span ->
+            wordFrame(layout, span.start + prefix, span.end + prefix)?.let {
+                model.register(
+                    WordId(verse, span.index),
+                    it.translate(origin.x, origin.y),
+                    text.substring(span.start, span.end),
+                )
+            }
+        }
+        return model.wordAt(point)
+    }
+
+    private fun verseAt(point: Offset): Int? = entries.entries.firstOrNull { (_, entry) ->
+        val coords = entry.coords ?: return@firstOrNull false
+        if (!coords.isAttached) return@firstOrNull false
+        val top = coords.positionInRoot().y
+        point.y >= top && point.y <= top + coords.size.height
+    }?.key
+
+    /** Dragging past the last verse should keep selecting, not stall. */
+    private fun nearestVerse(point: Offset): Int? = entries.entries
+        .filter { it.value.coords?.isAttached == true }
+        .minByOrNull { (_, entry) ->
+            val coords = entry.coords!!
+            val top = coords.positionInRoot().y
+            val bottom = top + coords.size.height
+            when {
+                point.y < top -> top - point.y
+                point.y > bottom -> point.y - bottom
+                else -> 0f
+            }
+        }?.key
 }
 
 private const val AUTO_SCROLL_STEP = 24f
