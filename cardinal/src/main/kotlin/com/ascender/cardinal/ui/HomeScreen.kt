@@ -55,14 +55,13 @@ class HomeScreen(sealedActivity: SealedLightActivity) :
                     .padding(horizontal = CONTENT_PADDING_UNITS.gridUnitsAsDp()),
             ) {
                 LightText(
-                    text = "Continue",
+                    text = "Continue reading...",
                     variant = LightTextVariant.Superfine,
                     lighten = true,
                     modifier = Modifier.padding(top = Space.base.gridUnitsAsDp()),
                 )
                 CardinalRow(
                     text = "${book?.name ?: "John"} ${state.lastChapter}",
-                    detail = state.currentTranslation.code,
                     variant = LightTextVariant.Heading,
                     onClick = { openReader(state.lastBook, state.lastChapter) },
                 )
