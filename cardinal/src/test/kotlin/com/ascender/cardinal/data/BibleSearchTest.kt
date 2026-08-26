@@ -38,19 +38,30 @@ class BibleSearchTest {
     }
 
     /**
-     * Results are canonical, so a common word fills the page from Genesis. The
-     * count has to be of the whole translation or the reader is quietly told
-     * the New Testament never mentions covenants.
+     * A capped page has to reach the end of the Bible, not just the start of
+     * it. Filling in canonical order gave every slot to Genesis and Exodus, so
+     * a search for a common word could never reach the New Testament however
+     * many matches were there. The count was honest about it and that made it
+     * worse: the reader was told 310 verses existed and shown a route to none
+     * of the ones they wanted.
      */
-    @Test fun `the count covers the whole Bible even when the page is capped`() = runBlocking {
+    @Test fun `a capped page still spans the whole Bible`() = runBlocking {
         val capped = search().search(Translation.WEB, "covenant", limit = 60)
         assertEquals(60, capped.hits.size)
-        assertTrue(capped.hits.none { it.book >= 40 }, "premise: the page stops before the NT")
+        assertTrue(capped.hits.any { it.book <= 39 }, "no Old Testament hits on the page")
+        assertTrue(capped.hits.any { it.book >= 40 }, "the page never reaches the New Testament")
         assertTrue(capped.total > 250, "total must count past the page, got ${capped.total}")
 
         val everything = search().search(Translation.WEB, "covenant", limit = 400)
         assertEquals(everything.hits.size, capped.total, "total must equal the real match count")
-        assertEquals("Showing 60 of ${capped.total}", capped.summary)
+        assertEquals("Showing 60 of ${capped.total}, across the whole Bible", capped.summary)
+    }
+
+    /** The page spreads across books, but what is shown still reads in order. */
+    @Test fun `a capped page is still canonical`() = runBlocking {
+        val hits = search().search(Translation.WEB, "covenant", limit = 60).hits
+        val keys = hits.map { it.book * 1_000_000 + it.chapter * 1000 + it.verse }
+        assertEquals(keys.sorted(), keys, "a capped page is out of canonical order")
     }
 
     @Test fun `hits come back in canonical order`() = runBlocking {

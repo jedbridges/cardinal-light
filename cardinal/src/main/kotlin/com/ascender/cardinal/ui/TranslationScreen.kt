@@ -1,10 +1,12 @@
 package com.ascender.cardinal.ui
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -20,7 +22,10 @@ import com.thelightphone.sdk.SealedLightActivity
 import com.thelightphone.sdk.ui.LightIcon
 import com.thelightphone.sdk.ui.LightIcons
 import com.thelightphone.sdk.ui.LightScrollView
+import com.thelightphone.sdk.ui.LightText
+import com.thelightphone.sdk.ui.LightTextVariant
 import com.thelightphone.sdk.ui.gridUnitsAsDp
+import com.thelightphone.sdk.ui.lightClickable
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -68,17 +73,37 @@ class TranslationScreen(sealedActivity: SealedLightActivity) :
                                 text = translation.displayName,
                                 detail = translation.code,
                                 modifier = Modifier.weight(1f),
-                                onClickLabel = if (selected) null else "Use ${translation.displayName}",
+                                onClickLabel = "Use ${translation.displayName}",
                                 onClick = { viewModel.select(translation) },
                             )
-                            LightIcon(
-                                icon = if (selected) LightIcons.SELECT_ON else LightIcons.SELECT_OFF,
-                                size = SELECT_ICON_UNITS,
-                                contentDescription = if (selected) "Selected" else null,
-                            )
+                            // The mark is part of the row's target, not a
+                            // separate one: it used to sit outside the
+                            // clickable area, so tapping the thing that shows
+                            // the state did nothing at all.
+                            Box(
+                                modifier = Modifier
+                                    .size(MIN_TOUCH_TARGET)
+                                    .lightClickable(
+                                        onClickLabel = "Use ${translation.displayName}",
+                                    ) { viewModel.select(translation) },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                LightIcon(
+                                    icon = if (selected) LightIcons.SELECT_ON else LightIcons.SELECT_OFF,
+                                    size = SELECT_ICON_UNITS,
+                                    contentDescription = if (selected) "Selected" else "Not selected",
+                                )
+                            }
                         }
                     }
 
+                    LightText(
+                        text = "Word highlights show only in the translation " +
+                            "they were made in. Whole verses show everywhere.",
+                        variant = LightTextVariant.Superfine,
+                        lighten = true,
+                        modifier = Modifier.padding(top = Space.section.gridUnitsAsDp()),
+                    )
                 }
             }
         }

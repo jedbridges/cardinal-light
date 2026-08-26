@@ -148,7 +148,7 @@ class SearchScreen(sealedActivity: SealedLightActivity) :
 
         CardinalScreen(title = "Search", subtitle = translation.code, onBack = { goBack() }) {
             LightTextField(
-                label = "Find",
+                label = "Search",
                 value = query,
                 placeholder = "a word or phrase",
                 onClick = {
@@ -161,11 +161,20 @@ class SearchScreen(sealedActivity: SealedLightActivity) :
                 modifier = Modifier.padding(horizontal = CONTENT_PADDING_UNITS.gridUnitsAsDp()),
             )
 
+            val found = results
             when {
-                searching -> Message("Searching ${translation.displayName}…")
-                results == null -> Message("Every verse of ${translation.displayName}, offline.")
-                results!!.hits.isEmpty() -> Message("Nothing matches “${results!!.query}”.")
-                else -> Results(results!!)
+                searching -> StatusMessage("Searching the ${translation.displayName}…")
+                found == null -> StatusMessage("Every verse of the ${translation.displayName}, on the phone.")
+                // A book that cannot be read is not the same as a word that is
+                // not there. Saying "nothing matches" for a missing asset would
+                // be a lie, and there is no browser here to check against.
+                found.total == 0 && found.unreadable > 0 ->
+                    StatusMessage(
+                        "${found.unreadable} of 66 books could not be read, " +
+                            "so this search is incomplete.",
+                    )
+                found.hits.isEmpty() -> StatusMessage("Nothing matches “${found.query}”.")
+                else -> Results(found)
             }
         }
     }
@@ -206,18 +215,4 @@ class SearchScreen(sealedActivity: SealedLightActivity) :
         }
     }
 
-    @Composable
-    private fun Message(text: String) {
-        LightText(
-            text = text,
-            variant = LightTextVariant.Detail,
-            lighten = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    horizontal = CONTENT_PADDING_UNITS.gridUnitsAsDp(),
-                    vertical = Space.section.gridUnitsAsDp(),
-                ),
-        )
-    }
 }

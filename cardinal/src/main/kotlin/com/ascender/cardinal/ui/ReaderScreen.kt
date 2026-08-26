@@ -59,11 +59,7 @@ data class ReaderUiState(
     val openAtVerse: Int? = null,
 ) {
     val title: String get() = reference.display
-    val hasPrevious: Boolean get() = previous != null
-    val hasNext: Boolean get() = next != null
 
-    /** Named, not "Next": a chapter name invites where a direction does not. */
-    val nextLabel: String get() = next?.display ?: "Next"
 }
 
 class ReaderViewModel(
@@ -186,11 +182,21 @@ private const val ARROW_ROW_UNITS = 4.5f
  * ramp under the title read as a drop shadow rather than as the page running
  * out, which is the opposite of the intent.
  */
-private const val TOP_SCRIM_UNITS = 4f
-private const val BOTTOM_SCRIM_UNITS = 6f
+private const val TOP_SCRIM_UNITS = 3f
+private const val BOTTOM_SCRIM_UNITS = 4.5f
 
 /** LightTopBar is three grid units tall, and the scrim now runs behind it. */
 private const val TOP_BAR_UNITS = 3f
+
+/**
+ * Where the reader's content begins: clear of the bar and of the whole scrim,
+ * so a chapter opens with verse 1 at full strength. Everything the reader draws
+ * in that column uses this, the text and the status messages alike. They used
+ * to disagree, and the messages lost: "Opening Genesis 3" was painted at 15dp,
+ * underneath a 46dp bar, which made every failure look like a blank screen.
+ */
+private val ReaderTopInset: Dp
+    @Composable get() = (TOP_BAR_UNITS + TOP_SCRIM_UNITS).gridUnitsAsDp()
 
 /**
  * How much of the top scrim stays fully opaque, as a fraction of its height.
@@ -242,6 +248,12 @@ class ReaderScreen(
             // dropping it lets LightTopBar use its larger single-line centre,
             // which is what the chapter reference deserves.
             onBack = { goBack() },
+            // The book you are in now, not the one you entered from. Paging
+            // rolls across boundaries, so after Genesis 50 the reader is in
+            // Exodus and the chapter list behind it is the wrong one.
+            onTitleClick = {
+                navigateTo({ ChapterListScreen(it, state.reference.bookId) })
+            },
             floatingTopBar = true,
             action = LightBarButton.LightIcon(
                 icon = LightIcons.SEARCH,
@@ -281,7 +293,7 @@ class ReaderScreen(
             },
         ) {
             when {
-                state.loading -> Placeholder("Opening ${state.reference.display}")
+                state.loading -> Placeholder("Opening ${state.reference.display}…")
                 state.verses.isEmpty() ->
                     Placeholder("${state.reference.display} could not be opened.")
                 else -> ChapterText(
@@ -289,9 +301,7 @@ class ReaderScreen(
                     highlights = state.highlights,
                     modifier = Modifier.fillMaxSize(),
                     scrollToVerse = state.openAtVerse,
-                    // Clears the whole scrim, not just the bar: a chapter has
-                    // to open with verse 1 at full strength, never half faded.
-                    topInset = (TOP_BAR_UNITS + TOP_SCRIM_UNITS).gridUnitsAsDp(),
+                    topInset = ReaderTopInset,
                     onVerseTap = viewModel::toggleVerse,
                     onSelectionChanged = viewModel::commitSelection,
                     onSettledAtVerse = viewModel::rememberPosition,
@@ -368,7 +378,9 @@ class ReaderScreen(
         ) {
             Image(
                 painter = painterResource(drawable),
-                contentDescription = "$label, ${reference.display}",
+                // The Box owns the announcement; naming the image too makes
+                // TalkBack read the chapter twice.
+                contentDescription = null,
                 colorFilter = ColorFilter.tint(LightThemeTokens.colors.content),
                 modifier = Modifier.size(ARROW_GLYPH_UNITS.gridUnitsAsDp()),
             )
@@ -447,14 +459,6 @@ class ReaderScreen(
 
     @Composable
     private fun Placeholder(text: String) {
-        LightText(
-            text = text,
-            variant = LightTextVariant.Copy,
-            lighten = true,
-            modifier = Modifier.padding(
-                horizontal = CONTENT_PADDING_UNITS.gridUnitsAsDp(),
-                vertical = Space.base.gridUnitsAsDp(),
-            ),
-        )
+        StatusMessage(text, modifier = Modifier.padding(top = ReaderTopInset))
     }
 }

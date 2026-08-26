@@ -34,6 +34,10 @@ fun CardinalScreen(
     onBack: (() -> Unit)? = null,
     subtitle: String? = null,
     action: LightTopBarButton? = null,
+    // Tapping the title. The reader uses it to open the chapter list of the
+    // book it is currently in, which back cannot do: back has to keep meaning
+    // "where I came from", or a search result would have no way home.
+    onTitleClick: (() -> Unit)? = null,
     // When true the bar floats over the content instead of sitting above it,
     // so text can scroll beneath the title. The caller owns the scrim that
     // keeps the title legible, and the top inset that keeps the first line
@@ -53,7 +57,7 @@ fun CardinalScreen(
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 if (!floatingTopBar) {
-                    TopBar(title, subtitle, onBack, action)
+                    TopBar(title, subtitle, onBack, action, onTitleClick)
                 }
                 content()
             }
@@ -61,7 +65,7 @@ fun CardinalScreen(
             // Last, so the title sits above the caller's scrim rather than
             // fading out with the text underneath it.
             if (floatingTopBar) {
-                TopBar(title, subtitle, onBack, action, Modifier.align(Alignment.TopCenter))
+                TopBar(title, subtitle, onBack, action, onTitleClick, Modifier.align(Alignment.TopCenter))
             }
         }
     }
@@ -73,6 +77,7 @@ private fun TopBar(
     subtitle: String?,
     onBack: (() -> Unit)?,
     action: LightTopBarButton?,
+    onTitleClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     LightTopBar(
@@ -81,11 +86,32 @@ private fun TopBar(
             LightBarButton.LightIcon(icon = LightIcons.BACK, onClick = it)
         },
         center = if (subtitle != null) {
-            LightTopBarCenter.TwoLineDetail(line1 = title, line2 = subtitle)
+            LightTopBarCenter.TwoLineDetail(line1 = title, line2 = subtitle, onClick = onTitleClick)
         } else {
-            LightTopBarCenter.Text(text = title)
+            LightTopBarCenter.Text(text = title, onClick = onTitleClick)
         },
         rightButton = action,
+    )
+}
+
+/**
+ * A whole screen's worth of message: opening, empty, nothing found, or a
+ * failure. One role, one rendering, so "Genesis 46 could not be opened."
+ * carries the same weight as "Nothing matches" instead of differing by half
+ * a type step depending on which screen you happen to be standing on.
+ */
+@Composable
+fun StatusMessage(text: String, modifier: Modifier = Modifier) {
+    LightText(
+        text = text,
+        variant = LightTextVariant.Detail,
+        lighten = true,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal = CONTENT_PADDING_UNITS.gridUnitsAsDp(),
+                vertical = Space.section.gridUnitsAsDp(),
+            ),
     )
 }
 

@@ -198,11 +198,27 @@ class HighlightsScreen(sealedActivity: SealedLightActivity) :
 
     /** The marked words, or the opening line for a whole-verse mark. */
     private fun preview(text: String, highlight: Highlight): String {
-        if (highlight.isWholeVerse) return text.take(PREVIEW_CHARS).trim()
+        if (highlight.isWholeVerse) return clip(text)
         val words = text.split(" ").filter { it.isNotBlank() }
         val start = highlight.startWord!!.coerceIn(0, words.lastIndex)
         val end = highlight.endWord!!.coerceIn(start, words.lastIndex)
-        return words.subList(start, end + 1).joinToString(" ").take(PREVIEW_CHARS)
+        val marked = clip(words.subList(start, end + 1).joinToString(" "))
+        // A leading ellipsis when the mark starts mid-verse, so the line reads
+        // as a quotation of what was marked rather than a broken sentence.
+        return if (start > 0) "…$marked" else marked
+    }
+
+    /**
+     * Cuts on a word boundary and says so. `take(90)` alone produced
+     * "…with thee shall bea", which reads as a rendering fault rather than an
+     * elision. Same rule as `snippet()` uses for search results.
+     */
+    private fun clip(text: String): String {
+        val trimmed = text.trim()
+        if (trimmed.length <= PREVIEW_CHARS) return trimmed
+        val cut = trimmed.lastIndexOf(' ', PREVIEW_CHARS)
+        val end = if (cut > PREVIEW_CHARS / 2) cut else PREVIEW_CHARS
+        return trimmed.take(end).trimEnd(' ', ',', ';', ':') + "…"
     }
 
     private companion object {

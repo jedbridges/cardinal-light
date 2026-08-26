@@ -31,7 +31,10 @@ class ChapterListScreen(
         val book = BibleBook.byId(bookId)
 
         CardinalScreen(title = book?.name ?: "Chapters", onBack = { goBack() }) {
-            if (book == null) return@CardinalScreen
+            if (book == null) {
+                StatusMessage("That book could not be opened.")
+                return@CardinalScreen
+            }
 
             LazyVerticalGrid(
                 columns = GridCells.Fixed(COLUMNS),

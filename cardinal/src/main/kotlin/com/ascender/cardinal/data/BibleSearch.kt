@@ -20,12 +20,14 @@ data class SearchResults(
     val hits: List<SearchHit>,
     /** Matches in the whole translation, which may exceed what [hits] holds. */
     val total: Int,
+    /** Books whose asset could not be read. Non-zero means the count is short. */
+    val unreadable: Int = 0,
 ) {
     val truncated: Boolean get() = total > hits.size
 
     val summary: String get() = when {
         total == 0 -> "No matches"
-        truncated -> "Showing ${hits.size} of $total"
+        truncated -> "Showing ${hits.size} of $total, across the whole Bible"
         total == 1 -> "1 verse"
         else -> "$total verses"
     }
@@ -62,8 +64,15 @@ class BibleSearch(private val readAsset: (String) -> ByteArray) {
         if (needle.length < MIN_QUERY) return SearchResults(needle, emptyList(), 0)
 
         return withContext(Dispatchers.IO) {
-            val hits = mutableListOf<SearchHit>()
+            // Hits are kept per book so the page can be filled a round at a
+            // time rather than first-come. Canonical order alone gave every
+            // slot to Genesis and Exodus: "love" is 310 verses in the KJV, so
+            // John 3:16 was unreachable through search, permanently. The app
+            // said "Showing 60 of 310" and meant it, which was worse than
+            // saying nothing.
+            val byBook = LinkedHashMap<Int, MutableList<SearchHit>>()
             var total = 0
+            var unreadable = 0
 
             // Every book is scanned even once the page is full. Results are in
             // canonical order, so a common word fills the page from Genesis
@@ -75,7 +84,11 @@ class BibleSearch(private val readAsset: (String) -> ByteArray) {
 
                 val raw = runCatching {
                     readAsset(book.assetPath(translation.code)).decodeToString()
-                }.getOrNull() ?: continue
+                }.getOrNull()
+                if (raw == null) {
+                    unreadable++
+                    continue
+                }
 
                 // Cheap reject. Also matches JSON keys, which only costs a
                 // needless parse and never a wrong result.
@@ -108,13 +121,36 @@ class BibleSearch(private val readAsset: (String) -> ByteArray) {
                     if (!verse.text.contains(needle, ignoreCase = true)) continue
 
                     total++
-                    if (hits.size < limit) {
-                        hits += SearchHit(book.id, verse.chapter, verse.verse, verse.text)
+                    val kept = byBook.getOrPut(book.id) { mutableListOf() }
+                    if (kept.size < limit) {
+                        kept += SearchHit(book.id, verse.chapter, verse.verse, verse.text)
                     }
                 }
             }
-            SearchResults(needle, hits, total)
+            SearchResults(needle, spread(byBook, limit), total, unreadable)
         }
+    }
+
+    /**
+     * One hit from each book that matched, then a second from each, until the
+     * page is full. Sorted canonically afterwards, so the list still reads in
+     * Bible order while covering it end to end.
+     */
+    private fun spread(byBook: Map<Int, List<SearchHit>>, limit: Int): List<SearchHit> {
+        val picked = mutableListOf<SearchHit>()
+        var round = 0
+        while (picked.size < limit) {
+            var addedThisRound = false
+            for (hits in byBook.values) {
+                if (round >= hits.size) continue
+                picked += hits[round]
+                addedThisRound = true
+                if (picked.size == limit) break
+            }
+            if (!addedThisRound) break
+            round++
+        }
+        return picked.sortedWith(compareBy({ it.book }, { it.chapter }, { it.verse }))
     }
 
     companion object {

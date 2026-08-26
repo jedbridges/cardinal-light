@@ -39,7 +39,6 @@ data class ReaderState(
     val highlights: List<Highlight> = emptyList(),
 ) {
     val currentTranslation: Translation get() = Translation.fromCode(translation)
-    val lastReference: Reference get() = Reference(lastBook, lastChapter)
 
     /**
      * Marks to draw on a chapter in a given translation.

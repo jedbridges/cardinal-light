@@ -55,13 +55,17 @@ class HomeScreen(sealedActivity: SealedLightActivity) :
                     .padding(horizontal = CONTENT_PADDING_UNITS.gridUnitsAsDp()),
             ) {
                 LightText(
-                    text = "Continue reading\u2026",
+                    text = "Continue reading",
                     variant = LightTextVariant.Superfine,
                     lighten = true,
                     modifier = Modifier.padding(top = Space.base.gridUnitsAsDp()),
                 )
                 CardinalRow(
-                    text = "${book?.name ?: "John"} ${state.lastChapter}",
+                    // The verse too, because that is where it opens. Naming
+                    // the chapter and landing halfway down it reads as a
+                    // scroll that went wrong.
+                    text = "${book?.name ?: "John"} ${state.lastChapter}" +
+                        if (state.lastVerse > 1) ":${state.lastVerse}" else "",
                     variant = LightTextVariant.Heading,
                     onClickLabel = "Continue reading",
                     onClick = { openReader(state.lastBook, state.lastChapter, state.lastVerse) },
