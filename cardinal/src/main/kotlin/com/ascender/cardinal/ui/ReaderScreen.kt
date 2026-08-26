@@ -22,6 +22,9 @@ import com.thelightphone.sdk.LightScreen
 import com.thelightphone.sdk.LightViewModel
 import com.thelightphone.sdk.SealedLightActivity
 import androidx.compose.material3.HorizontalDivider
+import com.thelightphone.sdk.ui.LightBarButton
+import com.thelightphone.sdk.ui.LightBottomBar
+import com.thelightphone.sdk.ui.LightIcons
 import com.thelightphone.sdk.ui.LightText
 import com.thelightphone.sdk.ui.LightTextVariant
 import com.thelightphone.sdk.ui.LightThemeTokens
@@ -195,6 +198,12 @@ class ReaderScreen(
             title = state.title,
             subtitle = state.translation.code,
             onBack = { goBack() },
+            action = LightBarButton.LightIcon(
+                icon = LightIcons.SEARCH,
+                onClick = { navigateTo(::SearchScreen) },
+                contentDescription = "Search",
+            ),
+            bottomBar = { ChapterBar(state) },
             overlay = {
                 pendingUndo?.let {
                     UndoRow(
@@ -224,10 +233,46 @@ class ReaderScreen(
     }
 
     /**
-     * Paging sits at the end of the text, not in a persistent bar: the screen
-     * is 31 grid units tall and a bar would spend four on a chapter you have
-     * not finished. Both chapters are named, both sit below scripture in the
-     * type scale, and a rule separates them from the last verse.
+     * Chapter paging, always reachable. Rewind and fast-forward rather than
+     * chevrons, because a chevron is the back button three units above.
+     *
+     * Both slots are always laid out. At Genesis 1 and Revelation 22 the
+     * arrow that has nowhere to go is dropped, and LightBottomBar fills its
+     * slot with a spacer so the surviving arrow does not slide across. Those
+     * are the only two chapters where this happens: paging rolls over book
+     * boundaries, so Malachi 4 pages into Matthew 1.
+     *
+     * A greyed-out arrow was not available. LightIcon tints every icon
+     * `content`, so a dead arrow would look exactly like a live one, and
+     * tapping it would do nothing with no way to know why.
+     */
+    @Composable
+    private fun ChapterBar(state: ReaderUiState) {
+        LightBottomBar(
+            items = listOf(
+                state.previous?.let { previous ->
+                    LightBarButton.LightIcon(
+                        icon = LightIcons.REWIND,
+                        onClick = viewModel::goToPrevious,
+                        contentDescription = "Previous chapter, ${previous.display}",
+                    )
+                },
+                state.next?.let { next ->
+                    LightBarButton.LightIcon(
+                        icon = LightIcons.FAST_FORWARD,
+                        onClick = viewModel::goToNext,
+                        contentDescription = "Next chapter, ${next.display}",
+                    )
+                },
+            ),
+        )
+    }
+
+    /**
+     * The same two moves as the bar, named rather than drawn. The bar is for
+     * leaving early; this is for arriving at the end, where the useful
+     * question is which chapter comes next, not which direction it is in.
+     * Both sit below scripture in the type scale, with a rule above them.
      */
     @Composable
     private fun ChapterFooter(state: ReaderUiState) {

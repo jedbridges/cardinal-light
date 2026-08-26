@@ -21,9 +21,17 @@ import com.thelightphone.sdk.ui.LightTheme
 import com.thelightphone.sdk.ui.LightThemeController
 import com.thelightphone.sdk.ui.LightThemeTokens
 import com.thelightphone.sdk.ui.LightTopBar
+import com.thelightphone.sdk.ui.LightTopBarButton
 import com.thelightphone.sdk.ui.LightTopBarCenter
 import com.thelightphone.sdk.ui.gridUnitsAsDp
 import com.thelightphone.sdk.ui.lightClickable
+
+/**
+ * LightBottomBar is four grid units tall and adds one of top margin. The SDK
+ * keeps both constants private, so [CardinalScreen] repeats the total here to
+ * float an overlay clear of the bar instead of underneath it.
+ */
+private const val BOTTOM_BAR_UNITS = 5f
 
 /** Every screen: theme, background, top bar, content. */
 @Composable
@@ -31,6 +39,8 @@ fun CardinalScreen(
     title: String,
     onBack: (() -> Unit)? = null,
     subtitle: String? = null,
+    action: LightTopBarButton? = null,
+    bottomBar: (@Composable () -> Unit)? = null,
     overlay: @Composable BoxScope.() -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -53,10 +63,29 @@ fun CardinalScreen(
                     } else {
                         LightTopBarCenter.Text(text = title)
                     },
+                    rightButton = action,
                 )
-                content()
+                // Only a screen with a bottom bar needs its content constrained;
+                // every other screen keeps the layout it already had.
+                if (bottomBar != null) {
+                    Column(modifier = Modifier.weight(1f)) { content() }
+                    bottomBar()
+                } else {
+                    content()
+                }
             }
-            overlay()
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .padding(
+                        bottom = if (bottomBar != null) {
+                            BOTTOM_BAR_UNITS.gridUnitsAsDp()
+                        } else {
+                            0.dp
+                        },
+                    ),
+                content = overlay,
+            )
         }
     }
 }
