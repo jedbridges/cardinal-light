@@ -38,14 +38,42 @@ and there is no network path here to stream one.
 
 ## Installing
 
-Sideload the APK from [Releases](https://github.com/jedbridges/cardinal-light/releases)
-with Developer Mode on, or with `adb install`. Released builds target LightOS on a
-real Light Phone III (`serverPackage = "com.lightos"`); to run in the emulator,
-swap that line in `cardinal/lighttool.toml` for the emulator package.
+Most likely you can't yet, and that is not a problem with this repo. Three
+things stand between the APK below and a working tool on a phone.
 
-They are signed with the SDK's `lightsdk-dev` key, which is public — that is
-the SDK's development key, not Light's, and not one only I hold. Treat these as
-sideload builds, not as signed distribution.
+**There is no browser on a Light Phone III.** Nothing gets downloaded on the
+device. You download on a computer and push it over USB.
+
+**Shipping LightOS builds may not run SDK tools at all.** As of Light's own
+README, the builds in the wild are "not yet ready to play nice" with tools built
+against this SDK. That notice still stands. Whether Cardinal launches on current
+firmware is untested.
+
+**These builds are not signed by Light.** They carry the SDK's `lightsdk-dev`
+key, which is public and shared by every fork of the scaffold. It is the SDK's
+development key, not Light's, and not one only I hold. LightOS is designed to
+refuse tools Light did not sign unless the owner opts the phone into running
+anything and accepts the warning that comes with it.
+
+Real distribution is meant to work differently: Light builds and signs a tool
+themselves from a public commit, and the phone offers a choice between
+Light-approved tools, any SDK-built tool, or anything at all. That build service
+does not exist yet. When it does, this repo is what it would build from.
+
+If you do have a device and are comfortable with ADB, the APK is on
+[Releases](https://github.com/jedbridges/cardinal-light/releases):
+
+```bash
+adb install cardinal-1.1.0.apk
+```
+
+Released builds target LightOS on real hardware (`serverPackage = "com.lightos"`
+in `cardinal/lighttool.toml`). To run in the emulator instead, swap that line for
+the emulator package and build your own; an APK built for one will install and do
+nothing on the other.
+
+If you try this on a real LP3, I would genuinely like to know what happened.
+Open an issue either way.
 
 ## Building
 
@@ -112,8 +140,8 @@ Everything lives in `cardinal/`.
 ### Why the APK is 8 MB and not 29
 
 `:sdk:ui` includes `LightQrCodeScanner`, which brings in ML Kit's barcode
-model. `libbarhopper_v3.so` is **19.3 MB of a 29 MB release APK** — two thirds
-of the download — shipped for four ABIs on a phone that is arm64 only. Cardinal
+model. `libbarhopper_v3.so` is **19.3 MB of a 29 MB release APK** (two thirds
+of the download), shipped for four ABIs on a phone that is arm64 only. Cardinal
 never scans anything, so `cardinal/build.gradle.kts` excludes it and the
 release APK is 8.3 MB.
 
@@ -139,7 +167,7 @@ bottom edge. A chapter is bounded; the worst case in the Bible is Psalm 119.
 
 **A word range belongs to one translation.** Only 194 of 31,095 verses are
 word-for-word identical between KJV and WEB, and in 18,894 of the rest the WEB
-rendering is shorter — so a stored word index shown against another
+rendering is shorter, so a stored word index shown against another
 translation lands on the wrong word or off the end. Whole-verse marks show
 everywhere, because they are about the verse. Word ranges show only where they
 were made, and the highlights list names that translation.
@@ -194,7 +222,7 @@ the event and suppresses the volume change.
   nothing in the interface says so.
 - **Search speed on real hardware is unmeasured.** Scanning the whole corpus
   takes 17 ms on a JVM but about 2.5 s on the emulator, where 66 asset reads
-  dominate. Parsing is not the cause, and neither is asset compression —
+  dominate. Parsing is not the cause, and neither is asset compression:
   shipping the assets uncompressed measured slower and cost 11 MB. A real
   device would settle it.
 - **No notes.** Deferred; typing on the LP3 keyboard is workable but slow.
