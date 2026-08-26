@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.thelightphone.sdk.ui.LightBarButton
@@ -33,6 +34,11 @@ fun CardinalScreen(
     onBack: (() -> Unit)? = null,
     subtitle: String? = null,
     action: LightTopBarButton? = null,
+    // When true the bar floats over the content instead of sitting above it,
+    // so text can scroll beneath the title. The caller owns the scrim that
+    // keeps the title legible, and the top inset that keeps the first line
+    // clear of it at rest.
+    floatingTopBar: Boolean = false,
     overlay: @Composable BoxScope.() -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -46,22 +52,41 @@ fun CardinalScreen(
                 .background(LightThemeTokens.colors.background),
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                LightTopBar(
-                    leftButton = onBack?.let {
-                        LightBarButton.LightIcon(icon = LightIcons.BACK, onClick = it)
-                    },
-                    center = if (subtitle != null) {
-                        LightTopBarCenter.TwoLineDetail(line1 = title, line2 = subtitle)
-                    } else {
-                        LightTopBarCenter.Text(text = title)
-                    },
-                    rightButton = action,
-                )
+                if (!floatingTopBar) {
+                    TopBar(title, subtitle, onBack, action)
+                }
                 content()
             }
             overlay()
+            // Last, so the title sits above the caller's scrim rather than
+            // fading out with the text underneath it.
+            if (floatingTopBar) {
+                TopBar(title, subtitle, onBack, action, Modifier.align(Alignment.TopCenter))
+            }
         }
     }
+}
+
+@Composable
+private fun TopBar(
+    title: String,
+    subtitle: String?,
+    onBack: (() -> Unit)?,
+    action: LightTopBarButton?,
+    modifier: Modifier = Modifier,
+) {
+    LightTopBar(
+        modifier = modifier,
+        leftButton = onBack?.let {
+            LightBarButton.LightIcon(icon = LightIcons.BACK, onClick = it)
+        },
+        center = if (subtitle != null) {
+            LightTopBarCenter.TwoLineDetail(line1 = title, line2 = subtitle)
+        } else {
+            LightTopBarCenter.Text(text = title)
+        },
+        rightButton = action,
+    )
 }
 
 /** A tappable line. The full width is the target, not just the glyphs. */

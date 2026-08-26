@@ -180,11 +180,17 @@ private const val ARROW_ROW_UNITS = 4.5f
  * ramp under the title read as a drop shadow rather than as the page running
  * out, which is the opposite of the intent.
  */
-private const val TOP_SCRIM_UNITS = 6f
+private const val TOP_SCRIM_UNITS = 4f
 private const val BOTTOM_SCRIM_UNITS = 6f
 
-/** LightTopBar is three grid units tall; the top scrim starts under it. */
+/** LightTopBar is three grid units tall, and the scrim now runs behind it. */
 private const val TOP_BAR_UNITS = 3f
+
+/**
+ * How much of the top scrim stays fully opaque, as a fraction of its height.
+ * Covers the title's own line and no more, so the fade starts right below it.
+ */
+private const val TOP_SCRIM_HOLD = 0.28f
 
 /**
  * Names the verse, because the reader is looking at a wall of them.
@@ -230,21 +236,28 @@ class ReaderScreen(
             // dropping it lets LightTopBar use its larger single-line centre,
             // which is what the chapter reference deserves.
             onBack = { goBack() },
+            floatingTopBar = true,
             action = LightBarButton.LightIcon(
                 icon = LightIcons.SEARCH,
                 onClick = { navigateTo(::SearchScreen) },
                 contentDescription = "Search",
             ),
             overlay = {
+                val page = LightThemeTokens.colors.background
                 Scrim(
-                    fromTop = true,
-                    height = TOP_SCRIM_UNITS.gridUnitsAsDp(),
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = TOP_BAR_UNITS.gridUnitsAsDp()),
+                    // Solid only as far as the title's own line, then a long
+                    // ramp. Text is visible arriving under the bar and is gone
+                    // before it can collide with the title.
+                    brush = Brush.verticalGradient(
+                        0f to page,
+                        TOP_SCRIM_HOLD to page,
+                        1f to Color.Transparent,
+                    ),
+                    height = (TOP_BAR_UNITS + TOP_SCRIM_UNITS).gridUnitsAsDp(),
+                    modifier = Modifier.align(Alignment.TopCenter),
                 )
                 Scrim(
-                    fromTop = false,
+                    brush = Brush.verticalGradient(listOf(Color.Transparent, page)),
                     height = BOTTOM_SCRIM_UNITS.gridUnitsAsDp(),
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
@@ -270,6 +283,9 @@ class ReaderScreen(
                     highlights = state.highlights,
                     modifier = Modifier.fillMaxSize(),
                     scrollToVerse = state.openAtVerse,
+                    // Clears the whole scrim, not just the bar: a chapter has
+                    // to open with verse 1 at full strength, never half faded.
+                    topInset = (TOP_BAR_UNITS + TOP_SCRIM_UNITS).gridUnitsAsDp(),
                     onVerseTap = viewModel::toggleVerse,
                     onSelectionChanged = viewModel::commitSelection,
                     onSettledAtVerse = viewModel::rememberPosition,
@@ -292,14 +308,12 @@ class ReaderScreen(
      * reads correctly if a light theme ever arrives.
      */
     @Composable
-    private fun Scrim(fromTop: Boolean, height: Dp, modifier: Modifier = Modifier) {
-        val page = LightThemeTokens.colors.background
-        val ramp = if (fromTop) listOf(page, Color.Transparent) else listOf(Color.Transparent, page)
+    private fun Scrim(brush: Brush, height: Dp, modifier: Modifier = Modifier) {
         Box(
             modifier = modifier
                 .fillMaxWidth()
                 .height(height)
-                .background(Brush.verticalGradient(ramp)),
+                .background(brush),
         )
     }
 

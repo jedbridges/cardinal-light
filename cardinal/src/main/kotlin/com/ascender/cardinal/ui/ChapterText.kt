@@ -3,6 +3,8 @@ package com.ascender.cardinal.ui
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -19,6 +21,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -120,6 +125,9 @@ fun ChapterText(
     onVerseTap: (Int) -> Unit = {},
     onSelectionChanged: (List<VerseWordRange>) -> Unit = {},
     onSettledAtVerse: (Int) -> Unit = {},
+    // Blank space above verse 1, so a chapter opens clear of a floating title
+    // bar instead of underneath it.
+    topInset: Dp = 0.dp,
     footer: @Composable () -> Unit = {},
 ) {
     val model = remember(verses) { WordSelectionModel() }
@@ -133,10 +141,13 @@ fun ChapterText(
     // Open on the verse that was asked for. A reference is a coordinate: being
     // told "Genesis 46:32" and landing at 46:1 makes the reader hunt for what
     // the app already knew.
-    LaunchedEffect(verses, scrollToVerse) {
+    val topInsetPx = with(LocalDensity.current) { topInset.roundToPx() }
+    LaunchedEffect(verses, scrollToVerse, topInsetPx) {
         val target = scrollToVerse ?: return@LaunchedEffect
         val offset = snapshotFlow { offsets[target] }.filterNotNull().first()
-        scrollState.scrollTo(offset)
+        // Offsets include the inset, so take it back off: the verse should land
+        // below the bar, not behind it.
+        scrollState.scrollTo((offset - topInsetPx).coerceAtLeast(0))
     }
 
     // Report where reading stopped, but only once scrolling settles, so this
@@ -209,6 +220,7 @@ fun ChapterText(
         scrollState = scrollState,
     ) {
         Column(modifier = Modifier.padding(horizontal = CONTENT_PADDING_UNITS.gridUnitsAsDp())) {
+            Spacer(modifier = Modifier.height(topInset))
             verses.forEach { verse ->
                 SelectableVerse(
                     verse = verse,
