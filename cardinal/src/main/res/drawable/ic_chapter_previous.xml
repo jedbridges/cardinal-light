@@ -1,0 +1,14 @@
+<!--
+  ic_chapter_next mirrored. The SDK has no left-pointing triangle, so this
+  is the only drawing Cardinal adds: the same three points reflected, not a
+  new glyph.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="33.0dp"
+    android:height="40.0dp"
+    android:viewportWidth="33.0"
+    android:viewportHeight="40.0">
+    <path
+        android:pathData="M33,0L0,20L33,40Z"
+        android:fillColor="#FFFFFFFF" />
+</vector>

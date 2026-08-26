@@ -25,6 +25,8 @@ import androidx.compose.material3.HorizontalDivider
 import com.thelightphone.sdk.ui.LightBarButton
 import com.thelightphone.sdk.ui.LightBottomBar
 import com.thelightphone.sdk.ui.LightIcons
+import androidx.compose.ui.res.painterResource
+import com.ascender.cardinal.R
 import com.thelightphone.sdk.ui.LightText
 import com.thelightphone.sdk.ui.LightTextVariant
 import com.thelightphone.sdk.ui.LightThemeTokens
@@ -196,7 +198,9 @@ class ReaderScreen(
 
         CardinalScreen(
             title = state.title,
-            subtitle = state.translation.code,
+            // No translation line. It is a setting the reader chose once, and
+            // dropping it lets LightTopBar use its larger single-line centre,
+            // which is what the chapter reference deserves.
             onBack = { goBack() },
             action = LightBarButton.LightIcon(
                 icon = LightIcons.SEARCH,
@@ -233,8 +237,10 @@ class ReaderScreen(
     }
 
     /**
-     * Chapter paging, always reachable. Rewind and fast-forward rather than
-     * chevrons, because a chevron is the back button three units above.
+     * Chapter paging, always reachable. A single solid triangle each way: the
+     * SDK's own PLAY geometry, mirrored for the left, since a chevron here
+     * would repeat the back button three units above and the double-triangle
+     * transport glyphs read as scrubbing rather than turning a page.
      *
      * Both slots are always laid out. At Genesis 1 and Revelation 22 the
      * arrow that has nowhere to go is dropped, and LightBottomBar fills its
@@ -251,15 +257,15 @@ class ReaderScreen(
         LightBottomBar(
             items = listOf(
                 state.previous?.let { previous ->
-                    LightBarButton.LightIcon(
-                        icon = LightIcons.REWIND,
+                    LightBarButton.Icon(
+                        painter = painterResource(R.drawable.ic_chapter_previous),
                         onClick = viewModel::goToPrevious,
                         contentDescription = "Previous chapter, ${previous.display}",
                     )
                 },
                 state.next?.let { next ->
-                    LightBarButton.LightIcon(
-                        icon = LightIcons.FAST_FORWARD,
+                    LightBarButton.Icon(
+                        painter = painterResource(R.drawable.ic_chapter_next),
                         onClick = viewModel::goToNext,
                         contentDescription = "Next chapter, ${next.display}",
                     )

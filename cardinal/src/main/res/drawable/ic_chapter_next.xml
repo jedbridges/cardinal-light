@@ -1,0 +1,15 @@
+<!--
+  The SDK's PLAY triangle, kept under a name that says what it does here.
+  Same 33x40 viewport and the same three points, so it sits in the same
+  visual family as every other LightOS glyph. Its mirror is
+  ic_chapter_previous; change one and change both.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="33.0dp"
+    android:height="40.0dp"
+    android:viewportWidth="33.0"
+    android:viewportHeight="40.0">
+    <path
+        android:pathData="M0,0L33,20L0,40Z"
+        android:fillColor="#FFFFFFFF" />
+</vector>
