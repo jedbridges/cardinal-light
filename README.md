@@ -143,7 +143,7 @@ Everything lives in `cardinal/`.
 model. `libbarhopper_v3.so` is **19.3 MB of a 29 MB release APK** (two thirds
 of the download), shipped for four ABIs on a phone that is arm64 only. Cardinal
 never scans anything, so `cardinal/build.gradle.kts` excludes it and the
-release APK is 8.3 MB.
+release APK is 8.5 MB.
 
 Every screen was exercised on a debug build and on a minified release build
 with no missing classes. Worth knowing that this affects every tool built on
@@ -216,8 +216,11 @@ the event and suppresses the volume change.
 
 - **No launcher icon.** There is no icon field in `lighttool.toml`, no format or
   dimension spec anywhere in the SDK, and tools may not supply their own
-  manifest. Android lint duly warns `MissingApplicationIcon`. Open question for
-  Light.
+  manifest. Android lint duly warns `MissingApplicationIcon`. Light confirmed in
+  [light-sdk#174](https://github.com/lightphone/light-sdk/issues/174) that this
+  is intended: the Toolbox launcher is a list of labels, so a tool icon has
+  nowhere to appear. The warning is noise, and quieting it is an open PR
+  invitation on that issue.
 - **Word selection is undiscoverable.** Long-press and drag selects words, and
   nothing in the interface says so.
 - **Search speed on real hardware is unmeasured.** Scanning the whole corpus
