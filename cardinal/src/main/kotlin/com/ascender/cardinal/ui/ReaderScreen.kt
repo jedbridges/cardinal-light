@@ -1,6 +1,13 @@
 package com.ascender.cardinal.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -23,9 +30,14 @@ import com.thelightphone.sdk.LightViewModel
 import com.thelightphone.sdk.SealedLightActivity
 import androidx.compose.material3.HorizontalDivider
 import com.thelightphone.sdk.ui.LightBarButton
-import com.thelightphone.sdk.ui.LightBottomBar
 import com.thelightphone.sdk.ui.LightIcons
+import androidx.compose.ui.Alignment as UiAlignment
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
+import com.thelightphone.sdk.ui.lightClickable
 import com.ascender.cardinal.R
 import com.thelightphone.sdk.ui.LightText
 import com.thelightphone.sdk.ui.LightTextVariant
@@ -158,6 +170,18 @@ class ReaderViewModel(
 
 }
 
+/** The floating arrow row: touch target, the glyph inside it, the row height. */
+private const val ARROW_TARGET_UNITS = 3.5f
+private const val ARROW_GLYPH_UNITS = 1.6f
+private const val ARROW_ROW_UNITS = 4.5f
+
+/** How far the page fades at each edge. Deep enough to run a line of text out. */
+private const val TOP_SCRIM_UNITS = 1.5f
+private const val BOTTOM_SCRIM_UNITS = 6f
+
+/** LightTopBar is three grid units tall; the top scrim starts under it. */
+private const val TOP_BAR_UNITS = 3f
+
 /**
  * Names the verse, because the reader is looking at a wall of them.
  * Total on purpose: most drags replace nothing.
@@ -207,13 +231,28 @@ class ReaderScreen(
                 onClick = { navigateTo(::SearchScreen) },
                 contentDescription = "Search",
             ),
-            bottomBar = { ChapterBar(state) },
             overlay = {
+                Scrim(
+                    fromTop = true,
+                    height = TOP_SCRIM_UNITS.gridUnitsAsDp(),
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = TOP_BAR_UNITS.gridUnitsAsDp()),
+                )
+                Scrim(
+                    fromTop = false,
+                    height = BOTTOM_SCRIM_UNITS.gridUnitsAsDp(),
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+                ChapterArrows(state, modifier = Modifier.align(Alignment.BottomCenter))
                 pendingUndo?.let {
                     UndoRow(
                         pending = it,
                         onUndo = viewModel.undo::undo,
-                        modifier = Modifier.align(Alignment.BottomCenter),
+                        // Sits on top of the arrow row rather than across it.
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = ARROW_ROW_UNITS.gridUnitsAsDp()),
                     )
                 }
             },
@@ -237,41 +276,79 @@ class ReaderScreen(
     }
 
     /**
-     * Chapter paging, always reachable. A single solid triangle each way: the
-     * SDK's own PLAY geometry, mirrored for the left, since a chevron here
-     * would repeat the back button three units above and the double-triangle
-     * transport glyphs read as scrubbing rather than turning a page.
+     * Scripture fades into the edge rather than being cut by it. The top scrim
+     * sits under the title bar, the bottom one under the arrows, both a ramp
+     * from the page colour to nothing.
      *
-     * Both slots are always laid out. At Genesis 1 and Revelation 22 the
-     * arrow that has nowhere to go is dropped, and LightBottomBar fills its
-     * slot with a spacer so the surviving arrow does not slide across. Those
-     * are the only two chapters where this happens: paging rolls over book
-     * boundaries, so Malachi 4 pages into Matthew 1.
+     * This exists because the alternative did not work. A solid disc behind
+     * each arrow punched a circular hole in the text and ate whole words as a
+     * verse scrolled past. A ramp hides nothing; it just runs the text out.
      *
-     * A greyed-out arrow was not available. LightIcon tints every icon
-     * `content`, so a dead arrow would look exactly like a live one, and
-     * tapping it would do nothing with no way to know why.
+     * Drawn from the background token rather than from black, so it still
+     * reads correctly if a light theme ever arrives.
      */
     @Composable
-    private fun ChapterBar(state: ReaderUiState) {
-        LightBottomBar(
-            items = listOf(
-                state.previous?.let { previous ->
-                    LightBarButton.Icon(
-                        painter = painterResource(R.drawable.ic_chapter_previous),
-                        onClick = viewModel::goToPrevious,
-                        contentDescription = "Previous chapter, ${previous.display}",
-                    )
-                },
-                state.next?.let { next ->
-                    LightBarButton.Icon(
-                        painter = painterResource(R.drawable.ic_chapter_next),
-                        onClick = viewModel::goToNext,
-                        contentDescription = "Next chapter, ${next.display}",
-                    )
-                },
-            ),
+    private fun Scrim(fromTop: Boolean, height: Dp, modifier: Modifier = Modifier) {
+        val page = LightThemeTokens.colors.background
+        val ramp = if (fromTop) listOf(page, Color.Transparent) else listOf(Color.Transparent, page)
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .height(height)
+                .background(Brush.verticalGradient(ramp)),
         )
+    }
+
+    /**
+     * Chapter paging, floating over the text instead of in a bar. A bar spent
+     * five of the screen's 31 grid units on every chapter; this spends none.
+     *
+     * Both slots are always laid out. At Genesis 1 and Revelation 22 the arrow
+     * with nowhere to go is dropped and its space is held, so the surviving
+     * arrow does not slide across. Those are the only two chapters where this
+     * happens: paging rolls over book boundaries.
+     */
+    @Composable
+    private fun ChapterArrows(state: ReaderUiState, modifier: Modifier = Modifier) {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .height(ARROW_ROW_UNITS.gridUnitsAsDp())
+                .padding(horizontal = Space.comfy.gridUnitsAsDp()),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ArrowSlot(state.previous, R.drawable.ic_chapter_previous, "Previous chapter", viewModel::goToPrevious)
+            ArrowSlot(state.next, R.drawable.ic_chapter_next, "Next chapter", viewModel::goToNext)
+        }
+    }
+
+    /** One arrow, or the empty space where it would have been. */
+    @Composable
+    private fun ArrowSlot(
+        reference: Reference?,
+        drawable: Int,
+        label: String,
+        onClick: () -> Unit,
+    ) {
+        val target = ARROW_TARGET_UNITS.gridUnitsAsDp()
+        if (reference == null) {
+            Spacer(modifier = Modifier.size(target))
+            return
+        }
+        Box(
+            modifier = Modifier
+                .size(target)
+                .lightClickable(onClickLabel = "$label, ${reference.display}") { onClick() },
+            contentAlignment = UiAlignment.Center,
+        ) {
+            Image(
+                painter = painterResource(drawable),
+                contentDescription = "$label, ${reference.display}",
+                colorFilter = ColorFilter.tint(LightThemeTokens.colors.content),
+                modifier = Modifier.size(ARROW_GLYPH_UNITS.gridUnitsAsDp()),
+            )
+        }
     }
 
     /**
@@ -285,7 +362,12 @@ class ReaderScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = Space.section.gridUnitsAsDp(), bottom = Space.section.gridUnitsAsDp()),
+                .padding(
+                    top = Space.section.gridUnitsAsDp(),
+                    // Clears the floating arrows, so the end of a chapter can
+                    // be scrolled out from under them.
+                    bottom = (Space.section + ARROW_ROW_UNITS).gridUnitsAsDp(),
+                ),
         ) {
             HorizontalDivider(
                 color = LightThemeTokens.colors.contentSecondary,
