@@ -64,7 +64,7 @@ If you do have a device and are comfortable with ADB, the APK is on
 [Releases](https://github.com/jedbridges/cardinal-light/releases):
 
 ```bash
-adb install cardinal-1.1.0.apk
+adb install cardinal-1.2.0.apk
 ```
 
 Released builds target LightOS on real hardware (`serverPackage = "com.lightos"`

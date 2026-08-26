@@ -17,7 +17,7 @@ import com.thelightphone.sdk.ui.LightTextVariant
 import com.thelightphone.sdk.ui.gridUnitsAsDp
 
 /** Kept next to the version in lighttool.toml by a test, so the two cannot drift. */
-const val CARDINAL_VERSION = "1.1.0"
+const val CARDINAL_VERSION = "1.2.0"
 
 const val CARDINAL_SOURCE = "github.com/jedbridges/cardinal-light"
 
