@@ -36,6 +36,17 @@ Nothing copyrighted will ever be added. A licensed translation could not be
 redistributed in an open-source repo that Light builds from a public commit,
 and there is no network path here to stream one.
 
+## Installing
+
+Sideload the APK from [Releases](https://github.com/jedbridges/cardinal-light/releases)
+with Developer Mode on, or with `adb install`. Released builds target LightOS on a
+real Light Phone III (`serverPackage = "com.lightos"`); to run in the emulator,
+swap that line in `cardinal/lighttool.toml` for the emulator package.
+
+They are signed with the SDK's `lightsdk-dev` key, which is public — that is
+the SDK's development key, not Light's, and not one only I hold. Treat these as
+sideload builds, not as signed distribution.
+
 ## Building
 
 You need Android Studio (for its bundled JDK and the Android SDK). From the

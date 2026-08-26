@@ -13,6 +13,8 @@ versionName = "1.1.0"
 permissions = []
 capabilities = []
 orientation = "portrait"
-# change if you run this on an LP3!
-# serverPackage = "com.lightos"
-serverPackage = "com.thelightphone.sdk.emulator"
+# The real device. This is what ships: an APK built with the emulator value
+# cannot bind to LightOS on an LP3, so it would install and then do nothing.
+# Swap the two lines below to test in the emulator, and swap them back.
+serverPackage = "com.lightos"
+# serverPackage = "com.thelightphone.sdk.emulator"
