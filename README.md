@@ -10,6 +10,13 @@ all three translations ships inside the APK.
 Search is offline too: it scans the bundled text directly rather than keeping
 an index, so there is nothing to build on first run and nothing to migrate.
 
+<p>
+  <img src="docs/screenshots/reader.png" width="200" alt="A chapter of scripture, verse numbers in grey">
+  <img src="docs/screenshots/word-selection.png" width="200" alt="Words inverted mid-drag during a long-press selection">
+  <img src="docs/screenshots/search.png" width="200" alt="Search results reading Showing 60 of 74">
+  <img src="docs/screenshots/home.png" width="200" alt="Home screen: continue reading, books, search, highlights, settings">
+</p>
+
 Cardinal is the reading half of [the iOS app of the same
 name](https://apps.apple.com/app/cardinal), rebuilt from scratch for LightOS
 rather than ported. The iOS app is SwiftUI; this is Kotlin and Compose against
