@@ -175,8 +175,12 @@ private const val ARROW_TARGET_UNITS = 3.5f
 private const val ARROW_GLYPH_UNITS = 1.6f
 private const val ARROW_ROW_UNITS = 4.5f
 
-/** How far the page fades at each edge. Deep enough to run a line of text out. */
-private const val TOP_SCRIM_UNITS = 1.5f
+/**
+ * How far the page fades at each edge. Both ends get the same runway: a short
+ * ramp under the title read as a drop shadow rather than as the page running
+ * out, which is the opposite of the intent.
+ */
+private const val TOP_SCRIM_UNITS = 6f
 private const val BOTTOM_SCRIM_UNITS = 6f
 
 /** LightTopBar is three grid units tall; the top scrim starts under it. */
