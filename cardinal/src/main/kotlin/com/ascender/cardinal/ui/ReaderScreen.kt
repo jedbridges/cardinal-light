@@ -31,7 +31,6 @@ import com.thelightphone.sdk.SealedLightActivity
 import androidx.compose.material3.HorizontalDivider
 import com.thelightphone.sdk.ui.LightBarButton
 import com.thelightphone.sdk.ui.LightIcons
-import androidx.compose.ui.Alignment as UiAlignment
 import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -358,7 +357,7 @@ class ReaderScreen(
             modifier = Modifier
                 .size(target)
                 .lightClickable(onClickLabel = "$label, ${reference.display}") { onClick() },
-            contentAlignment = UiAlignment.Center,
+            contentAlignment = Alignment.Center,
         ) {
             Image(
                 painter = painterResource(drawable),
@@ -370,10 +369,14 @@ class ReaderScreen(
     }
 
     /**
-     * The same two moves as the bar, named rather than drawn. The bar is for
-     * leaving early; this is for arriving at the end, where the useful
-     * question is which chapter comes next, not which direction it is in.
-     * Both sit below scripture in the type scale, with a rule above them.
+     * The same two moves as the arrows, named. Kept because at the end of the
+     * text the useful question is which chapter is next, not which direction
+     * it is in, and because the answer is often another book: the last chapter
+     * of Leviticus offers Numbers 1, not a dead end.
+     *
+     * Side by side rather than stacked, so each sits on the side its arrow is
+     * on. When one end has nowhere to go, its space is held and the other
+     * keeps its side instead of sliding across.
      */
     @Composable
     private fun ChapterFooter(state: ReaderUiState) {
@@ -390,26 +393,48 @@ class ReaderScreen(
             HorizontalDivider(
                 color = LightThemeTokens.colors.contentSecondary,
                 thickness = Dp.Hairline,
-                modifier = Modifier.padding(bottom = Space.base.gridUnitsAsDp()),
+                modifier = Modifier.padding(bottom = Space.comfy.gridUnitsAsDp()),
             )
-            state.previous?.let { previous ->
-                CardinalRow(
-                    text = previous.display,
-                    detail = "Previous",
-                    variant = LightTextVariant.Detail,
-                    onClickLabel = "Previous chapter, ${previous.display}",
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ChapterLink(
+                    reference = state.previous,
+                    label = "Previous",
+                    alignment = Alignment.Start,
                     onClick = viewModel::goToPrevious,
+                    modifier = Modifier.weight(1f),
                 )
-            }
-            state.next?.let { next ->
-                CardinalRow(
-                    text = next.display,
-                    detail = "Next",
-                    variant = LightTextVariant.Detail,
-                    onClickLabel = "Next chapter, ${next.display}",
+                ChapterLink(
+                    reference = state.next,
+                    label = "Next",
+                    alignment = Alignment.End,
                     onClick = viewModel::goToNext,
+                    modifier = Modifier.weight(1f),
                 )
             }
+        }
+    }
+
+    /** One named chapter, or the empty half where it would have been. */
+    @Composable
+    private fun ChapterLink(
+        reference: Reference?,
+        label: String,
+        alignment: Alignment.Horizontal,
+        onClick: () -> Unit,
+        modifier: Modifier = Modifier,
+    ) {
+        if (reference == null) {
+            Spacer(modifier = modifier)
+            return
+        }
+        Column(
+            modifier = modifier
+                .lightClickable(onClickLabel = "$label chapter, ${reference.display}") { onClick() }
+                .padding(vertical = Space.snug.gridUnitsAsDp()),
+            horizontalAlignment = alignment,
+        ) {
+            LightText(text = reference.display, variant = LightTextVariant.Detail)
+            LightText(text = label, variant = LightTextVariant.Superfine, lighten = true)
         }
     }
 
