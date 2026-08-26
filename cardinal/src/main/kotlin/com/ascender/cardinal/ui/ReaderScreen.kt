@@ -83,7 +83,7 @@ class ReaderViewModel(
     init {
         viewModelScope.launch {
 
-            open(store.state.first().currentTranslation, initial)
+            open(store.state.first().currentTranslation, initial, openAtVerse)
         }
         viewModelScope.launch {
             store.state.collect { stored ->
@@ -99,7 +99,16 @@ class ReaderViewModel(
         }
     }
 
-    private suspend fun open(translation: Translation, reference: Reference) {
+    /**
+     * [targetVerse] is where to land, and only the first open has one. Paging
+     * passes null: an arrow means "the next chapter", which starts at its first
+     * verse, not wherever this screen happened to open days ago.
+     */
+    private suspend fun open(
+        translation: Translation,
+        reference: Reference,
+        targetVerse: Int?,
+    ) {
         _state.value = _state.value.copy(
             reference = reference,
             translation = translation,
@@ -115,11 +124,9 @@ class ReaderViewModel(
             loading = false,
             previous = repository.previousChapter(reference.bookId, reference.chapter),
             next = repository.nextChapter(reference.bookId, reference.chapter),
-            // Only the chapter this screen was opened on has a target verse.
-            // Paging on to the next one starts at its beginning.
-            openAtVerse = openAtVerse.takeIf { reference == initial },
+            openAtVerse = targetVerse,
         )
-        store.setPosition(reference.bookId, reference.chapter, openAtVerse ?: 1)
+        store.setPosition(reference.bookId, reference.chapter, targetVerse ?: 1)
     }
 
     /** Pages in place, so reading a book end to end leaves one back-stack entry. */
@@ -130,7 +137,7 @@ class ReaderViewModel(
     private fun move(next: (Reference) -> Reference?) {
         val target = next(_state.value.reference) ?: return
         undo.dismiss()
-        viewModelScope.launch { open(_state.value.translation, target) }
+        viewModelScope.launch { open(_state.value.translation, target, targetVerse = null) }
     }
 
     fun toggleVerse(verse: Int) {

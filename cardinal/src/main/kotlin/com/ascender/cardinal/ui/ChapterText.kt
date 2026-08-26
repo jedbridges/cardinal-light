@@ -150,6 +150,14 @@ fun ChapterText(
         scrollState.scrollTo((offset - topInsetPx).coerceAtLeast(0))
     }
 
+    // Paging carries no target verse, and the scroll state outlives the swap of
+    // one chapter's verses for another's. Without this, tapping an arrow from
+    // halfway down Genesis 4 opens Genesis 5 at the same pixel offset, partway
+    // into a chapter the reader has not started.
+    LaunchedEffect(verses) {
+        if (scrollToVerse == null) scrollState.scrollTo(0)
+    }
+
     // Report where reading stopped, but only once scrolling settles, so this
     // is a handful of writes per chapter rather than one per frame.
     LaunchedEffect(verses) {
